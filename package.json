@@ -1,0 +1,26 @@
+{
+  "name": "smartcanteen-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "parcel index.html --port 1234",
+    "build": "parcel build index.html --public-url ./",
+    "preview": "parcel index.html --port 1234 "
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "canvas-confetti": "^1.9.4",
+    "lucide-react": "^1.48.0",
+    "postcss": "^8.5.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "parcel": "^2.13.3",
+    "process": "^0.11.10"
+  }
+}
