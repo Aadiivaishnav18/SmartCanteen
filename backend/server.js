@@ -24,7 +24,7 @@ const corsOptions = {
 
     const allowedOrigins = [
       process.env.FRONTEND_URL,
-      'https://smart-canteen-nine-opal.vercel.app/api',
+      'https://smart-canteen-nine-opal.vercel.app',
       'http://localhost:1234',
       'http://localhost:3000',
       'http://localhost:5000',
