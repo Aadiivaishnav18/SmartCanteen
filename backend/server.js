@@ -24,7 +24,7 @@ const corsOptions = {
 
     const allowedOrigins = [
       process.env.FRONTEND_URL,
-      'https://smart-canteen-nine-opal.vercel.app',
+      'https://smart-canteen-nine-opal.vercel.app/api',
       'http://localhost:1234',
       'http://localhost:3000',
       'http://localhost:5000',
@@ -55,14 +55,23 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Mount API Routes
+// Mount API Routes (supports both /api/* prefix and serverless stripped routes)
 app.use('/api/auth', authRoutes);
-app.use('/api/foods', foodRoutes);
-app.use('/api/slots', slotRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/seed', seedRoutes);
+app.use('/auth', authRoutes);
 
-app.get('/api/health', (req, res) => {
+app.use('/api/foods', foodRoutes);
+app.use('/foods', foodRoutes);
+
+app.use('/api/slots', slotRoutes);
+app.use('/slots', slotRoutes);
+
+app.use('/api/orders', orderRoutes);
+app.use('/orders', orderRoutes);
+
+app.use('/api/seed', seedRoutes);
+app.use('/seed', seedRoutes);
+
+app.get(['/api/health', '/health', '/'], (req, res) => {
   res.json({ status: 'OK', message: 'SmartCanteen MERN Backend Service operational.' });
 });
 
