@@ -1,28 +1,13 @@
 const getApiBaseUrl = () => {
-  const envUrl =
-    (typeof import.meta !== 'undefined' &&
-      import.meta.env &&
-      (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL)) ||
-    (typeof process !== 'undefined' &&
-      process.env &&
-      (process.env.VITE_API_BASE_URL || process.env.VITE_API_URL));
+  const envUrl = process.env.VITE_API_BASE_URL || process.env.VITE_API_URL;
 
-  let baseUrl = envUrl;
-
-  if (!baseUrl) {
-    if (typeof window !== 'undefined' && window.location) {
-      const hostname = window.location.hostname;
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        baseUrl = 'http://localhost:5000/api';
-      } else {
-        baseUrl = `${window.location.origin}/api`;
-      }
-    } else {
-      baseUrl = 'http://localhost:5000/api';
-    }
+  if (!envUrl) {
+    throw new Error(
+      'Missing API URL. Set VITE_API_BASE_URL (or VITE_API_URL) in the frontend environment.'
+    );
   }
 
-  const cleanUrl = String(baseUrl)
+  const cleanUrl = String(envUrl)
     .trim()
     .replace(/\/+$/, '');
 

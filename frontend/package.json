@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "parcel index.html --port 1234",
+    "dev": "parcel index.html --port 3000",
     "build": "parcel build index.html --public-url ./",
-    "preview": "parcel index.html --port 1234 "
+    "preview": "parcel index.html --port 3000"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.0.0",
