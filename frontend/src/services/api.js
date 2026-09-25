@@ -1,6 +1,14 @@
-const API_BASE_URL = (typeof process !== 'undefined' && process.env && process.env.VITE_API_BASE_URL) 
-  || (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) 
-  || 'http://localhost:5000/api';
+const getApiBaseUrl = () => {
+  const envUrl = 
+    (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL)) ||
+    (typeof process !== 'undefined' && process.env && (process.env.VITE_API_URL || process.env.VITE_API_BASE_URL)) ||
+    'https://smart-canteen-nine-opal.vercel.app/api';
+
+  const cleanUrl = String(envUrl).trim().replace(/\/+$/, '');
+  return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('smartcanteen_token');
