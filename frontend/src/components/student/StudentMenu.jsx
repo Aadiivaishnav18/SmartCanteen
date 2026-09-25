@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, UtensilsCrossed, AlertCircle, ShoppingBag } from 'lucide-react';
+import { Search, UtensilsCrossed, AlertCircle, ShoppingBag } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { FoodCard } from '../common/FoodCard';
 
@@ -25,14 +25,14 @@ export const StudentMenu = () => {
       {/* Header & Title */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900">Campus Canteen Menu</h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-1">Pre-order fresh meals with instant stock validation</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-[#172018]">Today's Menu</h1>
+          <p className="text-[#64748B] text-xs sm:text-sm mt-1">Fresh meals, ready when you are.</p>
         </div>
 
         {cartTotalItems > 0 && (
           <button 
             onClick={() => setStudentTab('cart')}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition"
+            className="bg-[#16A34A] hover:bg-[#15803D] text-white px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition"
           >
             <ShoppingBag className="w-4 h-4" />
             View Cart ({cartTotalItems} items)
@@ -41,22 +41,22 @@ export const StudentMenu = () => {
       </div>
 
       {/* Search & Category Filter Control Bar */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
         
         {/* Search Bar */}
         <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
+          <Search className="w-4 h-4 text-[#94A3B8] absolute left-4 top-3.5" />
           <input 
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search Veg Burger, Cold Coffee, Masala Dosa..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-2.5 pl-11 pr-4 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            className="w-full h-11 bg-white border border-slate-300 rounded-xl py-2.5 pl-11 pr-4 text-sm text-[#172018] placeholder-[#94A3B8] focus:outline-none focus:border-[#16A34A] focus:ring-2 focus:ring-emerald-500/20"
           />
           {searchQuery && (
             <button 
               onClick={() => setSearchQuery('')}
-              className="absolute right-3.5 top-2.5 text-xs text-slate-400 hover:text-slate-700 bg-slate-200 px-2 py-1 rounded-full"
+              className="absolute right-3.5 top-2.5 text-xs text-[#64748B] hover:text-[#172018] bg-slate-100 px-2 py-1 rounded-md"
             >
               Clear
             </button>
@@ -69,10 +69,10 @@ export const StudentMenu = () => {
             <button 
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-2xl text-xs font-bold transition whitespace-nowrap ${
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
                 selectedCategory === category
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-[#16A34A] text-white shadow-xs'
+                  : 'bg-[#F8FAFC] text-[#64748B] hover:bg-slate-100 border border-slate-200'
               }`}
             >
               {category}
@@ -87,7 +87,7 @@ export const StudentMenu = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredFoods.map(food => (
             <FoodCard 
-              key={food.id} 
+              key={food._id || food.id} 
               food={food} 
               onSelectDetail={setSelectedFoodModal} 
             />
@@ -95,12 +95,12 @@ export const StudentMenu = () => {
         </div>
       ) : (
         <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 max-w-md mx-auto space-y-3">
-          <AlertCircle className="w-10 h-10 text-slate-400 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-800">No Food Items Found</h3>
-          <p className="text-xs text-slate-500">We couldn't find any items matching "{searchQuery}". Try selecting another category.</p>
+          <AlertCircle className="w-10 h-10 text-[#94A3B8] mx-auto" />
+          <h3 className="text-lg font-bold text-[#172018]">No Food Items Found</h3>
+          <p className="text-xs text-[#64748B]">We couldn't find any food items matching "{searchQuery}". Try searching another keyword or resetting filters.</p>
           <button 
             onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }}
-            className="bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl"
+            className="bg-[#16A34A] text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-[#15803D] transition"
           >
             Reset Filters
           </button>

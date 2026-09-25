@@ -12,7 +12,7 @@ const PRESET_AVATARS = [
 ];
 
 export const EditProfileModal = ({ onClose }) => {
-  const { currentUser, updateUserProfile, showToast } = useApp();
+  const { currentUser, updateUserProfile } = useApp();
 
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
@@ -45,56 +45,53 @@ export const EditProfileModal = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden text-slate-100 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#172018]/60 backdrop-blur-md animate-pop-in">
+      <div className="bg-white border border-slate-200 w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden text-[#172018] max-h-[90vh] overflow-y-auto">
         
-        {/* Glow */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-3xl pointer-events-none"></div>
-
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-5 right-5 text-slate-400 hover:text-white p-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 transition"
+          className="absolute top-5 right-5 text-[#94A3B8] hover:text-[#172018] p-2 rounded-xl bg-slate-100 hover:bg-slate-200 transition"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">
-            <Sparkles className="w-4 h-4" /> Personalize Account
+          <div className="flex items-center gap-2 text-[#16A34A] text-xs font-bold uppercase tracking-wider mb-1">
+            <Sparkles className="w-4 h-4" /> Account Settings
           </div>
-          <h2 className="text-2xl font-black text-white">Edit Profile Details</h2>
-          <p className="text-slate-400 text-xs mt-1">
-            Update your campus avatar image, roll number, department, and contact info.
+          <h2 className="text-2xl font-black text-[#172018]">Edit Profile Details</h2>
+          <p className="text-[#64748B] text-xs mt-1">
+            Update avatar photo, roll number, department, and contact info.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
 
-          {/* Avatar Preview & Selection */}
-          <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800/80">
-            <label className="block text-xs font-bold text-slate-300 mb-3 flex items-center gap-2">
-              <Camera className="w-4 h-4 text-emerald-400" /> Choose Profile Photo
+          {/* Avatar Selection */}
+          <div className="bg-[#F8FAFC] p-4 rounded-2xl border border-slate-200">
+            <label className="block text-xs font-bold text-[#172018] mb-3 flex items-center gap-2">
+              <Camera className="w-4 h-4 text-[#16A34A]" /> Profile Photo
             </label>
 
-            <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-4 mb-3">
               <div className="relative">
                 <img 
                   src={customAvatarUrl.trim() || avatar} 
                   alt="Profile Avatar Preview"
-                  className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500 shadow-md"
+                  className="w-16 h-16 rounded-2xl object-cover border-2 border-[#16A34A] shadow-xs"
                   onError={(e) => {
                     e.target.src = PRESET_AVATARS[0].url;
                   }}
                 />
-                <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-slate-950 p-1 rounded-full text-[10px]">
+                <div className="absolute -bottom-1 -right-1 bg-[#16A34A] text-white p-1 rounded-full text-[10px]">
                   <Check className="w-3 h-3 stroke-[3]" />
                 </div>
               </div>
 
               <div className="flex-1">
-                <span className="text-xs font-semibold text-slate-300 block mb-1">Preset Campus Avatars</span>
+                <span className="text-xs font-semibold text-[#64748B] block mb-1.5">Preset Campus Avatars</span>
                 <div className="flex flex-wrap gap-2">
                   {PRESET_AVATARS.map((p, idx) => (
                     <button
@@ -105,7 +102,7 @@ export const EditProfileModal = ({ onClose }) => {
                         setCustomAvatarUrl('');
                       }}
                       className={`w-9 h-9 rounded-xl overflow-hidden border-2 transition ${
-                        avatar === p.url && !customAvatarUrl ? 'border-emerald-400 scale-105 shadow-sm' : 'border-slate-800 opacity-60 hover:opacity-100'
+                        avatar === p.url && !customAvatarUrl ? 'border-[#16A34A] scale-105 shadow-xs' : 'border-slate-200 opacity-60 hover:opacity-100'
                       }`}
                       title={p.name}
                     >
@@ -118,7 +115,7 @@ export const EditProfileModal = ({ onClose }) => {
 
             {/* Custom Image URL Input */}
             <div>
-              <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+              <label className="block text-[11px] font-semibold text-[#64748B] mb-1">
                 Or Paste Image / Photo URL
               </label>
               <input 
@@ -126,39 +123,39 @@ export const EditProfileModal = ({ onClose }) => {
                 value={customAvatarUrl}
                 onChange={e => setCustomAvatarUrl(e.target.value)}
                 placeholder="https://images.unsplash.com/photo-..."
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+                className="w-full h-10 bg-white border border-slate-300 rounded-xl px-3 text-xs text-[#172018] placeholder-slate-400 focus:outline-none focus:border-[#16A34A]"
               />
             </div>
           </div>
 
           {/* Full Name */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
+            <label className="block text-xs font-bold text-[#172018] mb-1">Full Name</label>
             <div className="relative">
-              <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input 
                 type="text" 
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
-                placeholder="e.g. Aditya Sharma"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:outline-none focus:border-emerald-500"
+                placeholder="Aditya Sharma"
+                className="w-full h-11 bg-white border border-slate-300 rounded-xl pl-10 pr-4 text-xs text-[#172018] focus:outline-none focus:border-[#16A34A]"
               />
             </div>
           </div>
 
           {/* Email */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Campus Email</label>
+            <label className="block text-xs font-bold text-[#172018] mb-1">Campus Email</label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input 
                 type="email" 
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
                 placeholder="student@college.edu"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:outline-none focus:border-emerald-500"
+                className="w-full h-11 bg-white border border-slate-300 rounded-xl pl-10 pr-4 text-xs text-[#172018] focus:outline-none focus:border-[#16A34A]"
               />
             </div>
           </div>
@@ -166,29 +163,29 @@ export const EditProfileModal = ({ onClose }) => {
           {/* Roll Number & Department Grid */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Roll / ID Number</label>
+              <label className="block text-xs font-bold text-[#172018] mb-1">Roll / ID Number</label>
               <div className="relative">
-                <BookOpen className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                <BookOpen className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
                 <input 
                   type="text" 
                   value={rollNumber}
                   onChange={e => setRollNumber(e.target.value)}
                   placeholder="CS2024-089"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full h-11 bg-white border border-slate-300 rounded-xl pl-9 pr-3 text-xs text-[#172018] focus:outline-none focus:border-[#16A34A]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Department</label>
+              <label className="block text-xs font-bold text-[#172018] mb-1">Department</label>
               <div className="relative">
-                <Building className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                <Building className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
                 <input 
                   type="text" 
                   value={department}
                   onChange={e => setDepartment(e.target.value)}
                   placeholder="Computer Science"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full h-11 bg-white border border-slate-300 rounded-xl pl-9 pr-3 text-xs text-[#172018] focus:outline-none focus:border-[#16A34A]"
                 />
               </div>
             </div>
@@ -196,15 +193,15 @@ export const EditProfileModal = ({ onClose }) => {
 
           {/* Phone Number */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Phone Number (Optional)</label>
+            <label className="block text-xs font-bold text-[#172018] mb-1">Phone Number (Optional)</label>
             <div className="relative">
-              <Phone className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+              <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input 
                 type="tel" 
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
                 placeholder="+91 98765 43210"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:outline-none focus:border-emerald-500"
+                className="w-full h-11 bg-white border border-slate-300 rounded-xl pl-10 pr-4 text-xs text-[#172018] focus:outline-none focus:border-[#16A34A]"
               />
             </div>
           </div>
@@ -214,7 +211,7 @@ export const EditProfileModal = ({ onClose }) => {
             <button 
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              className="px-5 py-2.5 rounded-xl text-xs font-semibold text-[#64748B] hover:text-[#172018] hover:bg-slate-100 transition"
             >
               Cancel
             </button>
@@ -222,7 +219,7 @@ export const EditProfileModal = ({ onClose }) => {
             <button 
               type="submit"
               disabled={loading}
-              className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-black px-6 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition"
+              className="bg-[#16A34A] hover:bg-[#15803D] disabled:opacity-50 text-white font-semibold px-6 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-xs transition"
             >
               {loading ? 'Saving Profile...' : 'Save Profile Changes'}
             </button>

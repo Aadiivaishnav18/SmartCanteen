@@ -27,6 +27,8 @@ import { MenuManagement } from './components/admin/MenuManagement';
 import { PickupSlotManagement } from './components/admin/PickupSlotManagement';
 import { AdminOrders } from './components/admin/AdminOrders';
 
+import { Footer } from './components/common/Footer';
+
 const MainApp = () => {
   const { 
     currentUser, 
@@ -104,13 +106,15 @@ const MainApp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#172018] flex flex-col font-sans selection:bg-[#16A34A] selection:text-white">
       <Header />
       <Toast />
       
       <main className="flex-1">
         {renderContent()}
       </main>
+
+      <Footer />
 
       {/* Global Food Detail Modal */}
       {selectedFoodModal && (

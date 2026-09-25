@@ -70,12 +70,16 @@ export const AppProvider = ({ children }) => {
         })
       ]);
 
-      setFoodItems(foodsData);
-      setPickupSlots(slotsData);
+      if (Array.isArray(foodsData)) {
+        setFoodItems(foodsData);
+      }
+      if (Array.isArray(slotsData)) {
+        setPickupSlots(slotsData);
+      }
 
-      if (ordersRes && ordersRes.orders) {
+      if (ordersRes && Array.isArray(ordersRes.orders)) {
         setOrders(ordersRes.orders);
-        setPagination(ordersRes.pagination);
+        setPagination(ordersRes.pagination || { total: ordersRes.orders.length, page: 1, limit: 10, totalPages: 1, hasMore: false });
         if (!trackedOrderId && ordersRes.orders.length > 0) {
           setTrackedOrderId(ordersRes.orders[0].orderId || ordersRes.orders[0]._id);
         }
@@ -305,20 +309,28 @@ export const AppProvider = ({ children }) => {
   // Order Lifecycle Status Update
   const updateOrderStatus = async (orderId, targetStatus) => {
     try {
+      setOrders(prev => prev.map(o => {
+        if (o.id === orderId || o._id === orderId || o.orderId === orderId) {
+          return { ...o, status: targetStatus };
+        }
+        return o;
+      }));
+
       const res = await api.updateOrderStatus(orderId, targetStatus);
-      if (!res.success) {
+      if (res && res.error && !res.success) {
         showToast(res.error, 'error');
-        return;
-      }
-
-      await refreshBackendData();
-
-      if (targetStatus === 'Ready') {
-        confetti({ particleCount: 70, spread: 60, origin: { y: 0.4 } });
-        showToast(`🔔 ORDER READY: #${orderId} is ready at Counter 1!`, 'success');
       } else {
-        showToast(`Order #${orderId} updated to state: ${targetStatus}`, 'info');
+        if (targetStatus === 'Ready') {
+          confetti({ particleCount: 70, spread: 60, origin: { y: 0.4 } });
+          showToast(`🔔 ORDER READY: #${orderId} is ready at Counter 1!`, 'success');
+        } else if (targetStatus === 'Collected') {
+          confetti({ particleCount: 60, spread: 60, origin: { y: 0.5 } });
+          showToast(`🎉 ORDER COLLECTED: #${orderId} successfully picked up!`, 'success');
+        } else {
+          showToast(`Order #${orderId} updated to state: ${targetStatus}`, 'info');
+        }
       }
+      await refreshBackendData();
     } catch (err) {
       showToast('Error updating order status.', 'error');
     }
@@ -327,14 +339,20 @@ export const AppProvider = ({ children }) => {
   // Cancel Order & Restore Stock
   const cancelOrder = async (orderId) => {
     try {
-      const res = await api.cancelOrder(orderId);
-      if (!res.success) {
-        showToast(res.error, 'error');
-        return;
-      }
+      setOrders(prev => prev.map(o => {
+        if (o.id === orderId || o._id === orderId || o.orderId === orderId) {
+          return { ...o, status: 'Cancelled' };
+        }
+        return o;
+      }));
 
+      const res = await api.cancelOrder(orderId);
+      if (res && res.error && !res.success) {
+        showToast(res.error, 'error');
+      } else {
+        showToast(`Order #${orderId} cancelled & stock restored.`, 'info');
+      }
       await refreshBackendData();
-      showToast(`Order #${orderId} cancelled. Stock restored & slot booking decremented!`, 'info');
     } catch (err) {
       showToast('Failed to cancel order.', 'error');
     }
@@ -342,82 +360,144 @@ export const AppProvider = ({ children }) => {
 
   // Admin & Staff Operations
   const addFoodItem = async (foodData) => {
-    const res = await api.createFood(foodData);
-    if (res.success) {
-      await refreshBackendData();
+    try {
+      const res = await api.createFood(foodData);
+      if (res && res.success && res.food) {
+        setFoodItems(prev => [res.food, ...prev]);
+      }
       showToast(`Added ${foodData.name} to menu!`, 'success');
+      await refreshBackendData();
+    } catch (err) {
+      showToast('Error adding food item.', 'error');
     }
   };
 
   const editFoodItem = async (id, updatedData) => {
-    const res = await api.updateFood(id, updatedData);
-    if (res.success) {
-      await refreshBackendData();
+    try {
+      setFoodItems(prev => prev.map(f => (f._id === id || f.id === id) ? { ...f, ...updatedData } : f));
+      await api.updateFood(id, updatedData);
       showToast('Food item updated', 'success');
+      await refreshBackendData();
+    } catch (err) {
+      showToast('Error updating food item.', 'error');
     }
   };
 
   const deleteFoodItem = async (id) => {
-    const res = await api.deleteFood(id);
-    if (res.success) {
-      await refreshBackendData();
+    try {
+      setFoodItems(prev => prev.filter(f => f._id !== id && f.id !== id));
+      await api.deleteFood(id);
       showToast('Food item deleted', 'info');
+      await refreshBackendData();
+    } catch (err) {
+      showToast('Error deleting food item.', 'error');
     }
   };
 
   const updateStock = async (id, newStock) => {
-    const res = await api.updateFoodStock(id, newStock);
-    if (res.success) {
-      await refreshBackendData();
+    try {
+      setFoodItems(prev => prev.map(f => {
+        if (f._id === id || f.id === id) {
+          return { ...f, stock: newStock, available: newStock > 0 };
+        }
+        return f;
+      }));
+      await api.updateFoodStock(id, newStock);
       showToast(`Stock level updated to ${newStock}`, 'success');
+      await refreshBackendData();
+    } catch (err) {
+      showToast('Error updating stock.', 'error');
     }
   };
 
   const toggleFoodAvailability = async (id) => {
-    const res = await api.toggleFoodAvailability(id);
-    if (res.success) {
-      await refreshBackendData();
+    try {
+      const targetIdStr = String(id);
+      setFoodItems(prev => prev.map(f => {
+        const itemKey = String(f._id || f.id || '');
+        if (itemKey === targetIdStr) {
+          return { ...f, available: !f.available };
+        }
+        return f;
+      }));
+
+      const res = await api.toggleFoodAvailability(id);
+      if (res && res.success && res.food) {
+        setFoodItems(prev => prev.map(f => {
+          const itemKey = String(f._id || f.id || '');
+          if (itemKey === targetIdStr) {
+            return { ...f, available: Boolean(res.food.available) };
+          }
+          return f;
+        }));
+      }
       showToast('Availability status toggled', 'info');
+    } catch (err) {
+      showToast('Error toggling food availability.', 'error');
     }
   };
 
   const createPickupSlot = async (slotData) => {
-    const res = await api.createSlot(slotData);
-    if (res.success) {
-      await refreshBackendData();
+    try {
+      const res = await api.createSlot(slotData);
+      if (res && res.success && res.slot) {
+        setPickupSlots(prev => [...prev, res.slot]);
+      }
       showToast(`Created slot ${slotData.startTime} – ${slotData.endTime}`, 'success');
+      await refreshBackendData();
+    } catch (err) {
+      showToast('Error creating pickup slot.', 'error');
     }
   };
 
   const updateSlotCapacity = async (id, capacity) => {
-    const slot = pickupSlots.find(s => (s._id === id || s.id === id));
-    if (!slot) return;
-    const res = await api.updateSlot(id, { capacity, active: slot.active });
-    if (res.success) {
-      await refreshBackendData();
+    try {
+      const slotIdStr = String(id);
+      const slot = pickupSlots.find(s => String(s._id || s.id || '') === slotIdStr);
+      if (!slot) return;
+      
+      setPickupSlots(prev => prev.map(s => String(s._id || s.id || '') === slotIdStr ? { ...s, capacity } : s));
+      const res = await api.updateSlot(id, { capacity, active: slot.active });
+      if (res && res.success && res.slot) {
+        setPickupSlots(prev => prev.map(s => String(s._id || s.id || '') === slotIdStr ? { ...s, ...res.slot } : s));
+      }
       showToast(`Capacity updated to ${capacity}`, 'success');
+    } catch (err) {
+      showToast('Error updating slot capacity.', 'error');
     }
   };
 
   const toggleSlotActive = async (id) => {
-    const slot = pickupSlots.find(s => (s._id === id || s.id === id));
-    if (!slot) return;
-    const res = await api.updateSlot(id, { capacity: slot.capacity, active: !slot.active });
-    if (res.success) {
-      await refreshBackendData();
+    try {
+      const slotIdStr = String(id);
+      const slot = pickupSlots.find(s => String(s._id || s.id || '') === slotIdStr);
+      if (!slot) return;
+      
+      const newActive = !slot.active;
+      setPickupSlots(prev => prev.map(s => String(s._id || s.id || '') === slotIdStr ? { ...s, active: newActive } : s));
+      const res = await api.updateSlot(id, { capacity: slot.capacity, active: newActive });
+      if (res && res.success && res.slot) {
+        setPickupSlots(prev => prev.map(s => String(s._id || s.id || '') === slotIdStr ? { ...s, ...res.slot } : s));
+      }
       showToast('Slot active state toggled', 'info');
+    } catch (err) {
+      showToast('Error toggling slot active state.', 'error');
     }
   };
 
   const resetDemoData = async () => {
-    await api.resetSeed();
-    await refreshBackendData();
-    setCart([
-      { foodId: 'food-1', quantity: 1 },
-      { foodId: 'food-5', quantity: 1 }
-    ]);
-    setStudentTab('dashboard');
-    showToast('MongoDB collections re-seeded with clean demo data!', 'success');
+    try {
+      await api.resetSeed();
+      await refreshBackendData();
+      setCart([
+        { foodId: 'food-1', quantity: 1 },
+        { foodId: 'food-5', quantity: 1 }
+      ]);
+      setStudentTab('dashboard');
+      showToast('MongoDB collections re-seeded with clean demo data!', 'success');
+    } catch (err) {
+      showToast('Error resetting data.', 'error');
+    }
   };
 
   return (

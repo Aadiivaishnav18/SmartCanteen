@@ -5,7 +5,11 @@ import db, { initDb, seedData } from './database.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Initialize DB schema on start
@@ -248,32 +252,29 @@ app.post('/api/orders', (req, res) => {
   }
 });
 
-// VALID STATE PROGRESSION UPDATE: Placed -> Accepted -> Preparing -> Ready -> Collected
-const VALID_TRANSITIONS = {
-  'Placed': 'Accepted',
-  'Accepted': 'Preparing',
-  'Preparing': 'Ready',
-  'Ready': 'Collected'
-};
+const VALID_STATUSES = ['Placed', 'Accepted', 'Preparing', 'Ready', 'Collected', 'Cancelled'];
 
 app.patch('/api/orders/:id/status', (req, res) => {
   const { id } = req.params;
   const { status: targetStatus } = req.body;
 
-  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+  let order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+  if (!order) {
+    order = db.prepare('SELECT * FROM orders WHERE id = ? OR status IS NOT NULL').all().find(o => o.id === id || o.orderId === id);
+  }
+
   if (!order) {
     return res.status(404).json({ error: 'Order not found.' });
   }
 
-  const allowedNext = VALID_TRANSITIONS[order.status];
-  if (allowedNext !== targetStatus && targetStatus !== 'Cancelled') {
+  if (!VALID_STATUSES.includes(targetStatus)) {
     return res.status(400).json({ 
-      error: `Invalid lifecycle status transition! Cannot jump from state "${order.status}" to "${targetStatus}".` 
+      error: `Invalid status "${targetStatus}". Must be one of: ${VALID_STATUSES.join(', ')}.` 
     });
   }
 
-  db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(targetStatus, id);
-  const updatedOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+  db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(targetStatus, order.id);
+  const updatedOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
 
   res.json({
     success: true,

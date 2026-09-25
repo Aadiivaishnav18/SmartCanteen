@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, CheckCircle2, AlertCircle, Image, DollarSign, Package, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const MenuManagement = () => {
@@ -42,8 +42,9 @@ export const MenuManagement = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const itemId = editingItem ? (editingItem._id || editingItem.id) : null;
     if (editingItem) {
-      editFoodItem(editingItem.id, formData);
+      editFoodItem(itemId, formData);
     } else {
       addFoodItem(formData);
     }
@@ -56,23 +57,23 @@ export const MenuManagement = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900">Food Menu Management</h1>
-          <p className="text-slate-500 text-xs sm:text-sm">Create, edit, price, and toggle canteen food items</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-[#172018]">Food Menu Management</h1>
+          <p className="text-[#64748B] text-xs sm:text-sm">Create, edit, price, and toggle canteen food items</p>
         </div>
 
         <button 
           onClick={handleOpenAdd}
-          className="bg-purple-600 hover:bg-purple-700 text-white font-extrabold px-5 py-3 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-purple-600/20 transition"
+          className="bg-[#16A34A] hover:bg-[#15803D] text-white font-semibold px-5 py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition"
         >
           <Plus className="w-4 h-4" /> Add New Food Item
         </button>
       </div>
 
       {/* Food Items Table */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider font-extrabold">
+            <thead className="bg-[#F8FAFC] border-b border-slate-200 text-[#64748B] uppercase tracking-wider font-extrabold">
               <tr>
                 <th className="px-6 py-4">Food Item</th>
                 <th className="px-6 py-4">Category</th>
@@ -83,59 +84,63 @@ export const MenuManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {foodItems.map(food => (
-                <tr key={food.id} className="hover:bg-slate-50/80 transition">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <img src={food.image} alt={food.name} className="w-12 h-12 rounded-xl object-cover" />
-                      <div>
-                        <span className="font-bold text-slate-900 text-sm block">{food.name}</span>
-                        <span className="text-slate-400 text-[10px] line-clamp-1 max-w-xs">{food.description}</span>
+              {foodItems.map(food => {
+                const foodId = food._id || food.id;
+
+                return (
+                  <tr key={foodId} className="hover:bg-slate-50/80 transition">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <img src={food.image} alt={food.name} className="w-12 h-12 rounded-xl object-cover" />
+                        <div>
+                          <span className="font-bold text-[#172018] text-sm block">{food.name}</span>
+                          <span className="text-[#64748B] text-[10px] line-clamp-1 max-w-xs">{food.description}</span>
+                        </div>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  <td className="px-6 py-4 font-semibold text-slate-700">{food.category}</td>
-                  <td className="px-6 py-4 font-black text-slate-900 text-sm">₹{food.price}</td>
+                    <td className="px-6 py-4 font-semibold text-[#64748B]">{food.category}</td>
+                    <td className="px-6 py-4 font-black text-[#172018] text-sm">₹{food.price}</td>
 
-                  <td className="px-6 py-4">
-                    <span className="font-extrabold text-slate-800">{food.stock} units</span>
-                  </td>
+                    <td className="px-6 py-4">
+                      <span className="font-bold text-[#172018]">{food.stock} units</span>
+                    </td>
 
-                  <td className="px-6 py-4">
-                    <button 
-                      onClick={() => toggleFoodAvailability(food.id)}
-                      className={`px-3 py-1 rounded-full text-xs font-bold border transition ${
-                        food.available && food.stock > 0
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 border-rose-200'
-                      }`}
-                    >
-                      {food.available && food.stock > 0 ? 'Active' : 'Out of Stock'}
-                    </button>
-                  </td>
-
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <td className="px-6 py-4">
                       <button 
-                        onClick={() => handleOpenEdit(food)}
-                        className="p-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition"
-                        title="Edit Food"
+                        onClick={() => toggleFoodAvailability(foodId)}
+                        className={`px-3 py-1 rounded-full text-xs font-bold border transition ${
+                          food.available && food.stock > 0
+                            ? 'bg-[#DCFCE7] text-[#15803D] border-[#16A34A]/30'
+                            : 'bg-[#FEE2E2] text-[#B91C1C] border-[#EF4444]/30'
+                        }`}
                       >
-                        <Edit2 className="w-4 h-4" />
+                        {food.available && food.stock > 0 ? 'Active' : 'Out of Stock'}
                       </button>
+                    </td>
 
-                      <button 
-                        onClick={() => deleteFoodItem(food.id)}
-                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
-                        title="Delete Food"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => handleOpenEdit(food)}
+                          className="p-2 text-[#64748B] hover:text-[#16A34A] hover:bg-[#DCFCE7] rounded-xl transition"
+                          title="Edit Food"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+
+                        <button 
+                          onClick={() => deleteFoodItem(foodId)}
+                          className="p-2 text-[#94A3B8] hover:text-[#EF4444] hover:bg-rose-50 rounded-xl transition"
+                          title="Delete Food"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -143,20 +148,20 @@ export const MenuManagement = () => {
 
       {/* Add / Edit Food Item Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 border border-slate-200 shadow-2xl space-y-4 relative">
+        <div className="fixed inset-0 z-50 bg-[#172018]/60 backdrop-blur-md flex items-center justify-center p-4 animate-pop-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-4 relative">
             <button 
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 p-2 rounded-full"
+              className="absolute top-4 right-4 text-[#94A3B8] hover:text-[#172018] p-2 rounded-full"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <h2 className="text-xl font-bold text-slate-900">
+            <h2 className="text-xl font-bold text-[#172018]">
               {editingItem ? 'Edit Food Item' : 'Add New Food Item'}
             </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-4 text-xs font-semibold text-slate-700">
+            <form onSubmit={handleSubmit} className="space-y-4 text-xs font-semibold text-[#172018]">
               <div>
                 <label className="block mb-1">Food Name</label>
                 <input 
@@ -164,7 +169,7 @@ export const MenuManagement = () => {
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                  className="w-full h-11 bg-white border border-slate-300 rounded-xl px-3 text-[#172018] focus:outline-none focus:border-[#16A34A]"
                   placeholder="e.g. Paneer Tikka Wrap"
                 />
               </div>
@@ -175,7 +180,7 @@ export const MenuManagement = () => {
                   <select 
                     value={formData.category}
                     onChange={e => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                    className="w-full h-11 bg-white border border-slate-300 rounded-xl px-3 text-[#172018] focus:outline-none focus:border-[#16A34A]"
                   >
                     <option value="Snacks">Snacks</option>
                     <option value="Meals">Meals</option>
@@ -189,10 +194,10 @@ export const MenuManagement = () => {
                   <input 
                     type="number" 
                     value={formData.price}
-                    onChange={e => setFormData({ ...formData, price: e.target.value })}
+                    onChange={e => setFormData({ ...formData, price: Number(e.target.value) })}
                     required
                     min="0"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                    className="w-full h-11 bg-white border border-slate-300 rounded-xl px-3 text-[#172018] focus:outline-none focus:border-[#16A34A]"
                   />
                 </div>
               </div>
@@ -203,10 +208,10 @@ export const MenuManagement = () => {
                   <input 
                     type="number" 
                     value={formData.stock}
-                    onChange={e => setFormData({ ...formData, stock: e.target.value })}
+                    onChange={e => setFormData({ ...formData, stock: Number(e.target.value) })}
                     required
                     min="0"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                    className="w-full h-11 bg-white border border-slate-300 rounded-xl px-3 text-[#172018] focus:outline-none focus:border-[#16A34A]"
                   />
                 </div>
 
@@ -218,7 +223,7 @@ export const MenuManagement = () => {
                     onChange={e => setFormData({ ...formData, prepTimeMinutes: Number(e.target.value) })}
                     required
                     min="1"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                    className="w-full h-11 bg-white border border-slate-300 rounded-xl px-3 text-[#172018] focus:outline-none focus:border-[#16A34A]"
                   />
                 </div>
               </div>
@@ -230,7 +235,7 @@ export const MenuManagement = () => {
                   value={formData.image}
                   onChange={e => setFormData({ ...formData, image: e.target.value })}
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-mono text-[11px]"
+                  className="w-full h-11 bg-white border border-slate-300 rounded-xl px-3 text-[#172018] font-mono text-[11px] focus:outline-none focus:border-[#16A34A]"
                 />
               </div>
 
@@ -240,7 +245,7 @@ export const MenuManagement = () => {
                   value={formData.description}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-3 text-[#172018] focus:outline-none focus:border-[#16A34A]"
                 ></textarea>
               </div>
 
@@ -250,14 +255,14 @@ export const MenuManagement = () => {
                   id="availableCheck"
                   checked={formData.available}
                   onChange={e => setFormData({ ...formData, available: e.target.checked })}
-                  className="w-4 h-4 text-purple-600 rounded"
+                  className="w-4 h-4 text-[#16A34A] rounded border-slate-300"
                 />
                 <label htmlFor="availableCheck">Item Available for Pre-Order</label>
               </div>
 
               <button 
                 type="submit"
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-extrabold py-3 rounded-xl text-sm transition"
+                className="w-full bg-[#16A34A] hover:bg-[#15803D] text-white font-semibold py-3.5 rounded-xl text-sm transition shadow-sm"
               >
                 {editingItem ? 'Save Changes' : 'Create Food Item'}
               </button>

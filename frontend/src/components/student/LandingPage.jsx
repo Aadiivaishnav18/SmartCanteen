@@ -8,134 +8,214 @@ import {
   ChefHat, 
   UserCheck, 
   TrendingUp,
-  Zap
+  Zap,
+  Sparkles,
+  Flame,
+  CheckCircle2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const LandingPage = () => {
-  const { setStudentTab, switchRoleDemo } = useApp();
+  const { setStudentTab, switchRoleDemo, foodItems } = useApp();
+
+  const previewFood = foodItems[0] || {
+    name: 'Veg Burger',
+    category: 'Snacks',
+    price: 80,
+    rating: 4.8,
+    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&auto=format&fit=crop&q=80',
+    description: 'Crispy vegetable patty with fresh lettuce and mayo.'
+  };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#172018] flex flex-col">
+      
       {/* Hero Section */}
-      <section className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950">
+      <section className="relative py-12 md:py-20 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-b from-[#FFFDF7] via-[#F8FAFC] to-[#F8FAFC] border-b border-slate-200">
         
-        {/* Ambient Glow */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none"></div>
+        {/* Subtle Background Accent */}
+        <div className="absolute top-10 right-1/4 w-96 h-96 bg-[#DCFCE7] blur-[100px] rounded-full pointer-events-none opacity-60"></div>
 
-        <div className="max-w-5xl mx-auto text-center relative z-10 space-y-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
           
-          <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-4 py-1.5 rounded-full text-xs font-semibold text-emerald-400">
-            <Zap className="w-3.5 h-3.5 text-amber-400" />
-            Smart Pre-Order & Pickup Queue System
+          {/* Left Hero Content */}
+          <div className="lg:col-span-7 space-y-6 text-left">
+            
+            <div className="inline-flex items-center gap-2 bg-[#DCFCE7] border border-[#16A34A]/30 px-3.5 py-1.5 rounded-full text-xs font-bold text-[#15803D]">
+              <Zap className="w-3.5 h-3.5 text-[#F59E0B]" />
+              Smart Campus Food Ordering
+            </div>
+
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#172018] leading-[1.15]">
+              Skip the Queue.<br />
+              <span className="text-[#16A34A]">Order Smart.</span><br />
+              Pick Up Fast.
+            </h1>
+
+            <p className="text-[#64748B] text-base sm:text-lg max-w-2xl leading-relaxed">
+              Order your favorite campus meals, choose a pickup slot, and collect your food without waiting in line.
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-3.5 pt-2">
+              <button 
+                onClick={() => setStudentTab('login')}
+                className="bg-[#16A34A] hover:bg-[#15803D] active:scale-95 text-white font-semibold px-7 py-3.5 rounded-xl text-sm sm:text-base flex items-center gap-2.5 shadow-md shadow-emerald-600/20 transition"
+              >
+                <UtensilsCrossed className="w-5 h-5" />
+                Order Food Now
+                <ArrowRight className="w-5 h-5" />
+              </button>
+
+              <button 
+                onClick={() => setStudentTab('menu')}
+                className="bg-white hover:bg-slate-50 text-[#172018] font-semibold px-6 py-3.5 rounded-xl text-sm border border-slate-300 transition"
+              >
+                Explore Menu
+              </button>
+            </div>
+
+            {/* Role Switcher Demo Shortcuts */}
+            <div className="pt-6 border-t border-slate-200/80">
+              <span className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-wider block mb-3">
+                Quick Role Access Portals
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <button 
+                  onClick={() => setStudentTab('login')}
+                  className="bg-white hover:bg-slate-50 text-[#172018] font-semibold px-4 py-2 rounded-xl text-xs border border-slate-200 flex items-center gap-1.5 transition"
+                >
+                  <UserCheck className="w-3.5 h-3.5 text-[#16A34A]" /> Student Portal
+                </button>
+                <button 
+                  onClick={() => switchRoleDemo('staff')}
+                  className="bg-white hover:bg-slate-50 text-[#172018] font-semibold px-4 py-2 rounded-xl text-xs border border-slate-200 flex items-center gap-1.5 transition"
+                >
+                  <ChefHat className="w-3.5 h-3.5 text-[#F97316]" /> Staff Kitchen Portal
+                </button>
+                <button 
+                  onClick={() => switchRoleDemo('admin')}
+                  className="bg-white hover:bg-slate-50 text-[#172018] font-semibold px-4 py-2 rounded-xl text-xs border border-slate-200 flex items-center gap-1.5 transition"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-600" /> Admin Portal
+                </button>
+              </div>
+            </div>
+
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white leading-tight">
-            Smart<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">Canteen</span>
-          </h1>
+          {/* Right Hero Preview Composition */}
+          <div className="lg:col-span-5 relative">
+            <div className="bg-white rounded-[24px] p-6 border border-slate-200 shadow-[0_8px_30px_rgba(15,23,42,0.10)] space-y-5 relative">
+              
+              {/* Floating Live Badge */}
+              <div className="absolute -top-3 -right-3 bg-[#172018] text-white px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md">
+                <span className="w-2 h-2 rounded-full bg-[#16A34A] animate-ping"></span>
+                <span>Live Campus Canteen</span>
+              </div>
 
-          <p className="text-xl sm:text-2xl font-bold text-amber-400 max-w-2xl mx-auto">
-            Skip the Queue. Order Smart. Pick Up Fast.
-          </p>
+              {/* Sample Food Card Preview */}
+              <div className="flex items-center gap-4 p-3.5 bg-[#F8FAFC] rounded-2xl border border-slate-200">
+                <img 
+                  src={previewFood.image} 
+                  alt={previewFood.name} 
+                  className="w-20 h-20 rounded-xl object-cover"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-[#16A34A] bg-[#DCFCE7] px-2 py-0.5 rounded-md">
+                      {previewFood.category}
+                    </span>
+                    <span className="text-xs font-extrabold text-[#172018]">₹{previewFood.price}</span>
+                  </div>
+                  <h4 className="font-bold text-base text-[#172018] mt-1">{previewFood.name}</h4>
+                  <p className="text-xs text-[#64748B] line-clamp-1">{previewFood.description}</p>
+                </div>
+              </div>
 
-          <p className="text-slate-400 text-base sm:text-lg max-w-3xl mx-auto leading-relaxed">
-            Eliminate long canteen lines and crowded pickup counters. SmartCanteen connects college students, kitchen staff, and administrators with automated inventory deduction and capacity-capped pickup slots.
-          </p>
+              {/* Live Order Tracker Widget Preview */}
+              <div className="bg-[#172018] text-white p-4.5 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400 font-semibold">Active Order #SC-9401</span>
+                  <span className="bg-[#16A34A] text-white font-bold text-[10px] px-2.5 py-0.5 rounded-full uppercase">
+                    Preparing
+                  </span>
+                </div>
 
-          {/* Role CTAs */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-            <button 
-              onClick={() => {
-                setStudentTab('login');
-              }}
-              className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold px-8 py-4 rounded-2xl text-base flex items-center gap-3 shadow-lg shadow-emerald-500/25 transition transform hover:-translate-y-0.5"
-            >
-              <UtensilsCrossed className="w-5 h-5" />
-              Sign In / Pre-Order Food
-              <ArrowRight className="w-5 h-5" />
-            </button>
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-[#16A34A]" />
+                    <span>Slot: <strong>1:00 PM – 1:15 PM</strong></span>
+                  </div>
+                  <span className="text-slate-300 font-medium">Counter 1</span>
+                </div>
 
-            <button 
-              onClick={() => {
-                setStudentTab('login');
-              }}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-4 rounded-2xl text-sm flex items-center gap-2 border border-slate-800 transition"
-            >
-              <UserCheck className="w-4 h-4 text-emerald-400" />
-              Student Portal (Login / Sign Up)
-            </button>
+                {/* Progress bar */}
+                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#16A34A] rounded-full w-3/4"></div>
+                </div>
+              </div>
 
-            <button 
-              onClick={() => switchRoleDemo('staff')}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-4 rounded-2xl text-sm flex items-center gap-2 border border-slate-800 transition"
-            >
-              <ChefHat className="w-4 h-4 text-amber-400" />
-              Staff Kitchen Portal
-            </button>
+              {/* Quick Metrics */}
+              <div className="grid grid-cols-2 gap-3 text-center text-xs">
+                <div className="bg-[#F0FDF4] p-3 rounded-xl border border-[#16A34A]/20">
+                  <span className="text-[10px] text-[#64748B] font-bold block uppercase">Estimated Wait</span>
+                  <span className="text-base font-extrabold text-[#15803D]">&lt; 5 Mins</span>
+                </div>
+                <div className="bg-[#FFEDD5] p-3 rounded-xl border border-[#F97316]/20">
+                  <span className="text-[10px] text-[#64748B] font-bold block uppercase">Pickup Slot</span>
+                  <span className="text-base font-extrabold text-[#C2410C]">Reserved</span>
+                </div>
+              </div>
 
-            <button 
-              onClick={() => switchRoleDemo('admin')}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-4 rounded-2xl text-sm flex items-center gap-2 border border-slate-800 transition"
-            >
-              <ShieldCheck className="w-4 h-4 text-purple-400" />
-              Admin Portal
-            </button>
+            </div>
           </div>
 
         </div>
       </section>
 
-      {/* Feature Grid */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto flex-1">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          
-          <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 hover:border-emerald-500/40 transition">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-4">
-              <UtensilsCrossed className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white mb-2">Campus Pre-Order</h3>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              Order meals directly from your lecture hall before breaks begin.
-            </p>
-          </div>
+      {/* Trust Indicators Section */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <div className="text-center max-w-xl mx-auto mb-10">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#172018]">Why SmartCanteen?</h2>
+          <p className="text-xs sm:text-sm text-[#64748B] mt-1">Built specifically for high-volume college dining halls</p>
+        </div>
 
-          <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 hover:border-amber-500/40 transition">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <div className="bg-white p-6 rounded-[20px] border border-slate-200 shadow-xs hover:border-[#16A34A]/40 transition space-y-3">
+            <div className="w-11 h-11 rounded-xl bg-[#DCFCE7] flex items-center justify-center text-[#16A34A]">
               <Clock className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">Smart Pickup Slots</h3>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              15-minute staggered time windows with strict order capacity limits.
+            <h3 className="text-lg font-bold text-[#172018]">Fast Pickup</h3>
+            <p className="text-xs text-[#64748B] leading-relaxed">
+              Staggered 15-minute pickup slots eliminate rush hour crowding at canteen counters.
             </p>
           </div>
 
-          <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 hover:border-teal-500/40 transition">
-            <div className="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 mb-4">
-              <TrendingUp className="w-6 h-6" />
+          <div className="bg-white p-6 rounded-[20px] border border-slate-200 shadow-xs hover:border-[#16A34A]/40 transition space-y-3">
+            <div className="w-11 h-11 rounded-xl bg-[#FFEDD5] flex items-center justify-center text-[#F97316]">
+              <UtensilsCrossed className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">Live Order Tracking</h3>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              Real-time updates: Placed → Accepted → Preparing → Ready → Collected.
+            <h3 className="text-lg font-bold text-[#172018]">Fresh Food</h3>
+            <p className="text-xs text-[#64748B] leading-relaxed">
+              Kitchen staff receives orders in advance so your meals are prepared fresh right on schedule.
             </p>
           </div>
 
-          <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 hover:border-purple-500/40 transition">
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-4">
-              <QrCode className="w-6 h-6" />
+          <div className="bg-white p-6 rounded-[20px] border border-slate-200 shadow-xs hover:border-[#16A34A]/40 transition space-y-3">
+            <div className="w-11 h-11 rounded-xl bg-[#DCFCE7] flex items-center justify-center text-[#16A34A]">
+              <Zap className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">Real-Time Inventory</h3>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              Automated stock deduction prevents over-booking of sold out items.
+            <h3 className="text-lg font-bold text-[#172018]">Smart Ordering</h3>
+            <p className="text-xs text-[#64748B] leading-relaxed">
+              Automated stock deduction ensures available food items are strictly capacity-controlled.
             </p>
           </div>
 
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-8 px-4 text-center text-xs text-slate-500">
-        <p>© 2026 SmartCanteen — Campus Pre-Order & Pickup Management Platform.</p>
-      </footer>
     </div>
   );
 };

@@ -1,28 +1,29 @@
 import React, { useState } from 'react';
-import { ListOrdered, Search, Clock, CheckCircle2, AlertCircle, XCircle } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const AdminOrders = () => {
-  const { orders, updateOrderStatus, cancelOrder } = useApp();
+  const { orders, cancelOrder } = useApp();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
   const filteredOrders = orders.filter(o => {
-    const matchesSearch = o.id.toLowerCase().includes(search.toLowerCase()) || 
-                          o.userName.toLowerCase().includes(search.toLowerCase()) ||
-                          o.userEmail.toLowerCase().includes(search.toLowerCase());
+    const orderIdStr = o.orderId || o.id || o._id || '';
+    const matchesSearch = orderIdStr.toLowerCase().includes(search.toLowerCase()) || 
+                          (o.userName && o.userName.toLowerCase().includes(search.toLowerCase())) ||
+                          (o.userEmail && o.userEmail.toLowerCase().includes(search.toLowerCase()));
     const matchesStatus = statusFilter === 'All' || o.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Placed': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'Accepted': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
-      case 'Preparing': return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'Ready': return 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold';
-      case 'Collected': return 'bg-slate-100 text-slate-700 border-slate-200';
-      case 'Cancelled': return 'bg-rose-100 text-rose-800 border-rose-200';
+      case 'Placed': return 'bg-blue-50 text-blue-700 border border-blue-200';
+      case 'Accepted': return 'bg-indigo-50 text-indigo-700 border border-indigo-200';
+      case 'Preparing': return 'bg-[#FFEDD5] text-[#C2410C] border border-[#F97316]/30';
+      case 'Ready': return 'bg-[#DCFCE7] text-[#15803D] border border-[#16A34A]/40 font-bold';
+      case 'Collected': return 'bg-slate-100 text-[#172018] border border-slate-200';
+      case 'Cancelled': return 'bg-[#FEE2E2] text-[#B91C1C] border border-[#EF4444]/30';
       default: return 'bg-slate-100 text-slate-600';
     }
   };
@@ -33,25 +34,25 @@ export const AdminOrders = () => {
       {/* Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900">Master Orders Audit Log</h1>
-          <p className="text-slate-500 text-xs sm:text-sm">Complete record of student pre-orders across all counters</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-[#172018]">Master Orders Audit Log</h1>
+          <p className="text-[#64748B] text-xs sm:text-sm">Complete audit record of student pre-orders</p>
         </div>
 
-        <div className="bg-white px-4 py-2 rounded-2xl border border-slate-200 text-xs text-slate-600 font-semibold">
-          Total Records: <strong className="text-purple-600">{orders.length}</strong>
+        <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 text-xs text-[#64748B] font-semibold">
+          Total Records: <strong className="text-[#16A34A]">{orders.length}</strong>
         </div>
       </div>
 
       {/* Filter & Search */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+          <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-3.5" />
           <input 
             type="text" 
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search Order ID, Student Name..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-10 pr-4 text-xs text-slate-900 focus:outline-none focus:border-purple-500"
+            className="w-full h-11 bg-white border border-slate-300 rounded-xl pl-10 pr-4 text-xs text-[#172018] focus:outline-none focus:border-[#16A34A] focus:ring-2 focus:ring-emerald-500/20"
           />
         </div>
 
@@ -60,8 +61,8 @@ export const AdminOrders = () => {
             <button 
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                statusFilter === st ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
+                statusFilter === st ? 'bg-[#172018] text-white shadow-xs' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-slate-100 border border-slate-200'
               }`}
             >
               {st}
@@ -70,11 +71,11 @@ export const AdminOrders = () => {
         </div>
       </div>
 
-      {/* Orders Audit Table */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Table */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider font-extrabold">
+            <thead className="bg-[#F8FAFC] border-b border-slate-200 text-[#64748B] uppercase tracking-wider font-extrabold">
               <tr>
                 <th className="px-6 py-4">Order ID</th>
                 <th className="px-6 py-4">Student</th>
@@ -86,43 +87,47 @@ export const AdminOrders = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {filteredOrders.map(order => (
-                <tr key={order.id} className="hover:bg-slate-50/80 transition">
-                  <td className="px-6 py-4 font-mono font-black text-slate-900">#{order.id}</td>
+              {filteredOrders.map(order => {
+                const orderIdStr = order.orderId || order.id || order._id;
 
-                  <td className="px-6 py-4">
-                    <span className="font-bold text-slate-900 block">{order.userName}</span>
-                    <span className="text-slate-400 text-[10px]">{order.userEmail}</span>
-                  </td>
+                return (
+                  <tr key={orderIdStr} className="hover:bg-slate-50/80 transition">
+                    <td className="px-6 py-4 font-mono font-black text-[#172018]">#{orderIdStr}</td>
 
-                  <td className="px-6 py-4">
-                    <span className="text-slate-800 font-semibold line-clamp-1 max-w-xs">
-                      {order.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}
-                    </span>
-                  </td>
+                    <td className="px-6 py-4">
+                      <span className="font-bold text-[#172018] block">{order.userName}</span>
+                      <span className="text-[#64748B] text-[10px]">{order.userEmail}</span>
+                    </td>
 
-                  <td className="px-6 py-4 text-slate-700 font-semibold">{order.pickupSlotTime}</td>
+                    <td className="px-6 py-4">
+                      <span className="text-[#172018] font-semibold line-clamp-1 max-w-xs">
+                        {order.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}
+                      </span>
+                    </td>
 
-                  <td className="px-6 py-4 font-black text-slate-900">₹{order.totalAmount}</td>
+                    <td className="px-6 py-4 text-[#172018] font-semibold">{order.pickupSlotTime}</td>
 
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${getStatusBadge(order.status)}`}>
-                      {order.status}
-                    </span>
-                  </td>
+                    <td className="px-6 py-4 font-black text-[#172018]">₹{order.totalAmount}</td>
 
-                  <td className="px-6 py-4 text-right">
-                    {order.status !== 'Collected' && order.status !== 'Cancelled' && (
-                      <button 
-                        onClick={() => cancelOrder(order.id)}
-                        className="text-xs text-rose-600 hover:text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100 font-semibold transition"
-                      >
-                        Cancel & Restore Stock
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${getStatusBadge(order.status)}`}>
+                        {order.status}
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-4 text-right">
+                      {order.status !== 'Collected' && order.status !== 'Cancelled' && (
+                        <button 
+                          onClick={() => cancelOrder(orderIdStr)}
+                          className="text-xs text-[#EF4444] hover:text-[#B91C1C] bg-[#FEE2E2] px-2.5 py-1 rounded-lg border border-[#EF4444]/30 font-semibold transition"
+                        >
+                          Cancel Order
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

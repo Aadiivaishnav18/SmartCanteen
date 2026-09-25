@@ -1,9 +1,40 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { Order } from '../models/Order.js';
 import { Food } from '../models/Food.js';
 import { Slot } from '../models/Slot.js';
 
 const router = express.Router();
+
+// Safe helper to find order by _id or orderId without CastError
+const findOrderByIdOrOrderId = async (id) => {
+  if (!id) return null;
+  if (mongoose.Types.ObjectId.isValid(id)) {
+    const order = await Order.findById(id);
+    if (order) return order;
+  }
+  return await Order.findOne({ orderId: id });
+};
+
+// Safe helper to find food item by _id or custom id
+const findFoodByIdOrString = async (id) => {
+  if (!id) return null;
+  if (mongoose.Types.ObjectId.isValid(id)) {
+    const food = await Food.findById(id);
+    if (food) return food;
+  }
+  return await Food.findOne({ $or: [{ id: id }, { name: id }] });
+};
+
+// Safe helper to find slot by _id or custom id
+const findSlotByIdOrString = async (id) => {
+  if (!id) return null;
+  if (mongoose.Types.ObjectId.isValid(id)) {
+    const slot = await Slot.findById(id);
+    if (slot) return slot;
+  }
+  return await Slot.findOne({ id: id });
+};
 
 // GET ORDERS WITH PAGINATION, SERVER-SIDE DATE FILTERING, & SORTING
 router.get('/', async (req, res) => {
@@ -47,7 +78,7 @@ router.get('/', async (req, res) => {
         total: totalOrders,
         page: pageNum,
         limit: limitNum,
-        totalPages: Math.ceil(totalOrders / limitNum),
+        totalPages: Math.ceil(totalOrders / limitNum) || 1,
         hasMore: pageNum * limitNum < totalOrders
       }
     });
@@ -66,7 +97,7 @@ router.post('/', async (req, res) => {
     }
 
     // 1. Slot Capacity Validation
-    const slot = await Slot.findById(pickupSlotId);
+    const slot = await findSlotByIdOrString(pickupSlotId);
     if (!slot) {
       return res.status(400).json({ error: 'Selected pickup time slot does not exist.' });
     }
@@ -81,7 +112,7 @@ router.post('/', async (req, res) => {
 
     // 2. Backend Stock Validation
     for (const item of items) {
-      const food = await Food.findById(item.foodId || item.id);
+      const food = await findFoodByIdOrString(item.foodId || item.id);
       if (!food) {
         return res.status(400).json({ error: `Food item ${item.name} is no longer available.` });
       }
@@ -94,11 +125,13 @@ router.post('/', async (req, res) => {
 
     // 3. Deduct Stock in MongoDB
     for (const item of items) {
-      const food = await Food.findById(item.foodId || item.id);
-      const newStock = Math.max(0, food.stock - item.quantity);
-      food.stock = newStock;
-      food.available = newStock > 0;
-      await food.save();
+      const food = await findFoodByIdOrString(item.foodId || item.id);
+      if (food) {
+        const newStock = Math.max(0, food.stock - item.quantity);
+        food.stock = newStock;
+        food.available = newStock > 0;
+        await food.save();
+      }
     }
 
     // 4. Increment Slot Booking Count
@@ -119,7 +152,7 @@ router.post('/', async (req, res) => {
       userEmail: userEmail || 'student@college.edu',
       items,
       totalAmount,
-      pickupSlotId: slot._id,
+      pickupSlotId: slot._id.toString(),
       pickupSlotTime: `${slot.startTime} – ${slot.endTime}`,
       status: 'Placed',
       queuePosition: activeOrdersCount + 1,
@@ -134,27 +167,21 @@ router.post('/', async (req, res) => {
   }
 });
 
-// STRICT LIFECYCLE STATE PROGRESSION: Placed -> Accepted -> Preparing -> Ready -> Collected
-const VALID_TRANSITIONS = {
-  'Placed': 'Accepted',
-  'Accepted': 'Preparing',
-  'Preparing': 'Ready',
-  'Ready': 'Collected'
-};
+// UPDATE ORDER STATUS (Allows Placed -> Accepted -> Preparing -> Ready -> Collected & Cancelled)
+const VALID_STATUSES = ['Placed', 'Accepted', 'Preparing', 'Ready', 'Collected', 'Cancelled'];
 
 router.patch('/:id/status', async (req, res) => {
   try {
     const { status: targetStatus } = req.body;
-    const order = await Order.findOne({ $or: [{ _id: req.params.id }, { orderId: req.params.id }] });
+    const order = await findOrderByIdOrOrderId(req.params.id);
 
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    const allowedNext = VALID_TRANSITIONS[order.status];
-    if (allowedNext !== targetStatus && targetStatus !== 'Cancelled') {
+    if (!VALID_STATUSES.includes(targetStatus)) {
       return res.status(400).json({ 
-        error: `Invalid status transition! Cannot jump from state "${order.status}" to "${targetStatus}".` 
+        error: `Invalid status "${targetStatus}". Must be one of: ${VALID_STATUSES.join(', ')}.` 
       });
     }
 
@@ -170,7 +197,7 @@ router.patch('/:id/status', async (req, res) => {
 // CANCEL ORDER & RESTORE STOCK + SLOT CAPACITY
 router.post('/:id/cancel', async (req, res) => {
   try {
-    const order = await Order.findOne({ $or: [{ _id: req.params.id }, { orderId: req.params.id }] });
+    const order = await findOrderByIdOrOrderId(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
     if (order.status === 'Collected' || order.status === 'Cancelled') {
@@ -179,7 +206,7 @@ router.post('/:id/cancel', async (req, res) => {
 
     // Restore Stock
     for (const item of order.items) {
-      const food = await Food.findById(item.foodId);
+      const food = await findFoodByIdOrString(item.foodId);
       if (food) {
         food.stock += item.quantity;
         food.available = true;
@@ -188,10 +215,12 @@ router.post('/:id/cancel', async (req, res) => {
     }
 
     // Release Slot Capacity
-    const slot = await Slot.findById(order.pickupSlotId);
-    if (slot) {
-      slot.bookedCount = Math.max(0, slot.bookedCount - 1);
-      await slot.save();
+    if (order.pickupSlotId) {
+      const slot = await findSlotByIdOrString(order.pickupSlotId);
+      if (slot) {
+        slot.bookedCount = Math.max(0, slot.bookedCount - 1);
+        await slot.save();
+      }
     }
 
     order.status = 'Cancelled';
