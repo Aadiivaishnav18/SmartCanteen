@@ -24,6 +24,7 @@ const corsOptions = {
 
     const allowedOrigins = [
       process.env.FRONTEND_URL,
+      'https://smart-canteen-nine-opal.vercel.app',
       'http://localhost:1234',
       'http://localhost:3000',
       'http://localhost:5000',
@@ -49,7 +50,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // Mount API Routes
