@@ -1,165 +1,318 @@
 const getApiBaseUrl = () => {
-  const envUrl = 
-    (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL)) ||
-    (typeof process !== 'undefined' && process.env && (process.env.VITE_API_URL || process.env.VITE_API_BASE_URL)) ||
-    'https://smart-canteen-nine-opal.vercel.app/api';
+  const envUrl =
+    (typeof import.meta !== 'undefined' &&
+      import.meta.env &&
+      (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL)) ||
+    (typeof process !== 'undefined' &&
+      process.env &&
+      (process.env.VITE_API_BASE_URL || process.env.VITE_API_URL));
 
-  const cleanUrl = String(envUrl).trim().replace(/\/+$/, '');
-  return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+  // Local development fallback only
+  const baseUrl = envUrl || 'http://localhost:5000/api';
+
+  const cleanUrl = String(baseUrl)
+    .trim()
+    .replace(/\/+$/, '');
+
+  return cleanUrl.endsWith('/api')
+    ? cleanUrl
+    : `${cleanUrl}/api`;
 };
 
 const API_BASE_URL = getApiBaseUrl();
 
+console.log('[API] Base URL:', API_BASE_URL);
+
 const getAuthHeader = () => {
   const token = localStorage.getItem('smartcanteen_token');
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
+
+  return token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
 };
 
 const safeFetch = async (url, options = {}) => {
   try {
-    const res = await fetch(url, options);
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      return { success: false, error: errJson.error || `HTTP ${res.status}: ${res.statusText}` };
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+      },
+    });
+
+    const contentType = response.headers.get('content-type') || '';
+
+    // Handle non-JSON responses safely
+    if (!contentType.includes('application/json')) {
+      const text = await response.text();
+
+      console.error('[API Non-JSON Response]', {
+        url,
+        status: response.status,
+        contentType,
+        response: text.substring(0, 300),
+      });
+
+      return {
+        success: false,
+        error: `API returned non-JSON response (${response.status})`,
+      };
     }
-    const data = await res.json();
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error:
+          data?.error ||
+          data?.message ||
+          `HTTP ${response.status}: ${response.statusText}`,
+      };
+    }
+
     return data;
-  } catch (err) {
-    console.warn(`[API Call Failed] ${url}:`, err.message);
-    return { success: false, error: err.message || 'Server connection failed' };
+  } catch (error) {
+    console.error('[API Call Failed]', url, error);
+
+    return {
+      success: false,
+      error: error?.message || 'Server connection failed',
+    };
   }
 };
 
 export const api = {
-  // Authentication
+  // =========================
+  // AUTHENTICATION
+  // =========================
+
   register: async (userData) => {
-    return await safeFetch(`${API_BASE_URL}/auth/register`, {
+    return safeFetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData)
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
     });
   },
 
   login: async (email, password) => {
-    return await safeFetch(`${API_BASE_URL}/auth/login`, {
+    return safeFetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
     });
   },
 
   updateProfile: async (profileData) => {
-    return await safeFetch(`${API_BASE_URL}/auth/profile`, {
+    return safeFetch(`${API_BASE_URL}/auth/profile`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-      body: JSON.stringify(profileData)
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(profileData),
     });
   },
 
-  // Foods
+  // =========================
+  // FOODS
+  // =========================
+
   getFoods: async (category = '', search = '') => {
-    let url = `${API_BASE_URL}/foods?`;
-    if (category) url += `category=${encodeURIComponent(category)}&`;
-    if (search) url += `search=${encodeURIComponent(search)}`;
-    return await safeFetch(url);
+    const params = new URLSearchParams();
+
+    if (category) {
+      params.append('category', category);
+    }
+
+    if (search) {
+      params.append('search', search);
+    }
+
+    const query = params.toString();
+
+    const url = query
+      ? `${API_BASE_URL}/foods?${query}`
+      : `${API_BASE_URL}/foods`;
+
+    return safeFetch(url);
   },
 
   createFood: async (foodData) => {
-    return await safeFetch(`${API_BASE_URL}/foods`, {
+    return safeFetch(`${API_BASE_URL}/foods`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-      body: JSON.stringify(foodData)
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(foodData),
     });
   },
 
   updateFood: async (id, foodData) => {
-    return await safeFetch(`${API_BASE_URL}/foods/${id}`, {
+    return safeFetch(`${API_BASE_URL}/foods/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-      body: JSON.stringify(foodData)
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(foodData),
     });
   },
 
   updateFoodStock: async (id, stock) => {
-    return await safeFetch(`${API_BASE_URL}/foods/${id}/stock`, {
+    return safeFetch(`${API_BASE_URL}/foods/${id}/stock`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-      body: JSON.stringify({ stock })
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify({ stock }),
     });
   },
 
   toggleFoodAvailability: async (id) => {
-    return await safeFetch(`${API_BASE_URL}/foods/${id}/toggle`, {
+    return safeFetch(`${API_BASE_URL}/foods/${id}/toggle`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() }
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
     });
   },
 
   deleteFood: async (id) => {
-    return await safeFetch(`${API_BASE_URL}/foods/${id}`, {
+    return safeFetch(`${API_BASE_URL}/foods/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeader()
+      headers: {
+        ...getAuthHeader(),
+      },
     });
   },
 
-  // Slots
+  // =========================
+  // SLOTS
+  // =========================
+
   getSlots: async () => {
-    return await safeFetch(`${API_BASE_URL}/slots`);
+    return safeFetch(`${API_BASE_URL}/slots`);
   },
 
   createSlot: async (slotData) => {
-    return await safeFetch(`${API_BASE_URL}/slots`, {
+    return safeFetch(`${API_BASE_URL}/slots`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-      body: JSON.stringify(slotData)
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(slotData),
     });
   },
 
   updateSlot: async (id, slotData) => {
-    return await safeFetch(`${API_BASE_URL}/slots/${id}`, {
+    return safeFetch(`${API_BASE_URL}/slots/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-      body: JSON.stringify(slotData)
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(slotData),
     });
   },
 
-  // Orders with Pagination & Date Filtering
-  getOrders: async ({ userId = '', status = '', startDate = '', endDate = '', page = 1, limit = 10, sortBy = 'createdAt' } = {}) => {
-    let url = `${API_BASE_URL}/orders?page=${page}&limit=${limit}&sortBy=${sortBy}&`;
-    if (userId) url += `userId=${encodeURIComponent(userId)}&`;
-    if (status && status !== 'All') url += `status=${encodeURIComponent(status)}&`;
-    if (startDate) url += `startDate=${encodeURIComponent(startDate)}&`;
-    if (endDate) url += `endDate=${encodeURIComponent(endDate)}&`;
+  // =========================
+  // ORDERS
+  // =========================
 
-    return await safeFetch(url, { headers: getAuthHeader() });
+  getOrders: async ({
+    userId = '',
+    status = '',
+    startDate = '',
+    endDate = '',
+    page = 1,
+    limit = 10,
+    sortBy = 'createdAt',
+  } = {}) => {
+    const params = new URLSearchParams();
+
+    params.append('page', page);
+    params.append('limit', limit);
+    params.append('sortBy', sortBy);
+
+    if (userId) {
+      params.append('userId', userId);
+    }
+
+    if (status && status !== 'All') {
+      params.append('status', status);
+    }
+
+    if (startDate) {
+      params.append('startDate', startDate);
+    }
+
+    if (endDate) {
+      params.append('endDate', endDate);
+    }
+
+    return safeFetch(
+      `${API_BASE_URL}/orders?${params.toString()}`,
+      {
+        headers: {
+          ...getAuthHeader(),
+        },
+      }
+    );
   },
 
   placeOrder: async (orderData) => {
-    return await safeFetch(`${API_BASE_URL}/orders`, {
+    return safeFetch(`${API_BASE_URL}/orders`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-      body: JSON.stringify(orderData)
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(orderData),
     });
   },
 
   updateOrderStatus: async (id, status) => {
-    return await safeFetch(`${API_BASE_URL}/orders/${id}/status`, {
+    return safeFetch(`${API_BASE_URL}/orders/${id}/status`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-      body: JSON.stringify({ status })
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify({ status }),
     });
   },
 
   cancelOrder: async (id) => {
-    return await safeFetch(`${API_BASE_URL}/orders/${id}/cancel`, {
+    return safeFetch(`${API_BASE_URL}/orders/${id}/cancel`, {
       method: 'POST',
-      headers: getAuthHeader()
+      headers: {
+        ...getAuthHeader(),
+      },
     });
   },
 
+  // =========================
+  // SEED
+  // =========================
+
   resetSeed: async () => {
-    return await safeFetch(`${API_BASE_URL}/seed/reset`, {
-      method: 'POST'
+    return safeFetch(`${API_BASE_URL}/seed/reset`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeader(),
+      },
     });
-  }
+  },
 };
