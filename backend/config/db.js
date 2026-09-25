@@ -1,29 +1,26 @@
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import dotenv from 'dotenv';
 
-let mongoMemoryServer = null;
+dotenv.config();
 
 export async function connectDB() {
-  let mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/smartcanteen_db';
+  const mongoUri = process.env.MONGO_URI;
+
+  if (!mongoUri) {
+    console.error('❌ MONGO_URI is not defined in environment variables.');
+    process.exit(1);
+  }
 
   try {
-    console.log(`🍃 Attempting MongoDB connection to: ${mongoUri}`);
-    await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 2000 // Fast 2s timeout fallback
-    });
-    console.log(`✅ MongoDB Connected Successfully to: ${mongoose.connection.host}`);
-  } catch (err) {
-    console.log('⚠️ Local MongoDB service not active on port 27017. Switching to MongoDB in-memory database instance...');
-    try {
-      mongoMemoryServer = await MongoMemoryServer.create();
-      const inMemoryUri = mongoMemoryServer.getUri();
-      await mongoose.connect(inMemoryUri, {
-        dbName: 'smartcanteen_db'
-      });
-      console.log(`✅ MongoDB Connected Successfully to In-Memory Instance: ${mongoose.connection.host}`);
-    } catch (fallbackErr) {
-      console.error('❌ Failed to connect to MongoDB instance:', fallbackErr);
-      process.exit(1);
-    }
+    console.log('🍃 Connecting to MongoDB Atlas...');
+
+    await mongoose.connect(mongoUri);
+
+    console.log(
+      `✅ MongoDB Connected Successfully to: ${mongoose.connection.host}`
+    );
+  } catch (error) {
+    console.error('❌ MongoDB Atlas connection failed:', error.message);
+    process.exit(1);
   }
 }
