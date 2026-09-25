@@ -8,7 +8,7 @@ const getApiBaseUrl = () => {
       (process.env.VITE_API_BASE_URL || process.env.VITE_API_URL));
 
   // Local development fallback only
-  const baseUrl = envUrl || 'http://localhost:5000/api';
+  const baseUrl = envUrl || 'https://smart-canteen-nine-opal.vercel.app/api';
 
   const cleanUrl = String(baseUrl)
     .trim()
