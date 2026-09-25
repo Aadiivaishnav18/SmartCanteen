@@ -7,8 +7,20 @@ const getApiBaseUrl = () => {
       process.env &&
       (process.env.VITE_API_BASE_URL || process.env.VITE_API_URL));
 
-  // Local development fallback only
-  const baseUrl = envUrl || 'https://smart-canteen-nine-opal.vercel.app/api';
+  let baseUrl = envUrl;
+
+  if (!baseUrl) {
+    if (typeof window !== 'undefined' && window.location) {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        baseUrl = 'http://localhost:5000/api';
+      } else {
+        baseUrl = `${window.location.origin}/api`;
+      }
+    } else {
+      baseUrl = 'http://localhost:5000/api';
+    }
+  }
 
   const cleanUrl = String(baseUrl)
     .trim()
