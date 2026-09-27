@@ -1,17 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   CheckCircle2, 
   Clock, 
   Sparkles, 
   QrCode,
-  ArrowRight
+  ArrowRight,
+  XCircle,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const OrderTracking = () => {
-  const { orders, trackedOrderId, updateOrderStatus, setStudentTab } = useApp();
+  const { orders, trackedOrderId, updateOrderStatus, cancelOrder, setStudentTab, refreshBackendData } = useApp();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const currentOrder = orders.find(o => (o.id === trackedOrderId || o._id === trackedOrderId || o.orderId === trackedOrderId)) || orders[0];
+  const currentOrder = orders.find(o => (o.id === trackedOrderId || o._id === trackedOrderId || o.orderId === trackedOrderId || o.orderNumber === trackedOrderId)) || orders[0];
 
   if (!currentOrder) {
     return (
@@ -27,23 +31,45 @@ export const OrderTracking = () => {
   const steps = ['Placed', 'Accepted', 'Preparing', 'Ready', 'Collected'];
 
   const getStepIndex = (status) => {
-    return steps.indexOf(status);
+    const s = (status || '').toLowerCase();
+    if (s === 'placed') return 0;
+    if (s === 'accepted') return 1;
+    if (s === 'preparing') return 2;
+    if (s === 'ready') return 3;
+    if (s === 'collected') return 4;
+    return 0;
   };
 
   const currentIndex = getStepIndex(currentOrder.status);
-  const orderNumber = currentOrder.orderId || currentOrder.id || currentOrder._id;
+  const orderNumber = currentOrder.orderNumber || currentOrder.orderId || currentOrder.id || currentOrder._id;
+  const isCancelable = (currentOrder.status || '').toLowerCase() === 'placed';
 
-  // Demo shortcut to advance order status
   const handleSimulateNextState = () => {
     const nextMap = {
+      'placed': 'accepted',
       'Placed': 'Accepted',
+      'accepted': 'preparing',
       'Accepted': 'Preparing',
+      'preparing': 'ready',
       'Preparing': 'Ready',
+      'ready': 'collected',
       'Ready': 'Collected'
     };
     const next = nextMap[currentOrder.status];
     if (next) {
       updateOrderStatus(orderNumber, next);
+    }
+  };
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshBackendData();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const handleCancel = async () => {
+    if (window.confirm(`Are you sure you want to cancel Order #${orderNumber}? Stock will be automatically restored.`)) {
+      await cancelOrder(orderNumber, 'Cancelled by student');
     }
   };
 
@@ -63,21 +89,43 @@ export const OrderTracking = () => {
           </p>
         </div>
 
-        {/* Status Highlight */}
-        <div className="bg-[#172018]/80 backdrop-blur-xs p-4 rounded-2xl border border-white/10 text-right w-full md:w-auto">
-          <div className="text-[10px] uppercase font-bold text-slate-400">Current Order Status</div>
-          <div className={`text-lg font-extrabold mt-0.5 ${
-            currentOrder.status === 'Ready' ? 'text-emerald-400' :
-            currentOrder.status === 'Preparing' ? 'text-[#F97316]' :
-            'text-emerald-300'
-          }`}>
-            {currentOrder.status === 'Ready' ? 'READY AT COUNTER 1!' : currentOrder.status}
+        {/* Status Highlight & Refresh Button */}
+        <div className="flex flex-col items-end gap-2 w-full md:w-auto">
+          <div className="bg-[#172018]/80 backdrop-blur-xs p-4 rounded-2xl border border-white/10 text-right w-full md:w-auto">
+            <div className="text-[10px] uppercase font-bold text-slate-400">Current Order Status</div>
+            <div className={`text-lg font-extrabold mt-0.5 capitalize ${
+              (currentOrder.status || '').toLowerCase() === 'ready' ? 'text-emerald-400' :
+              (currentOrder.status || '').toLowerCase() === 'preparing' ? 'text-[#F97316]' :
+              (currentOrder.status || '').toLowerCase() === 'cancelled' ? 'text-rose-400' :
+              'text-emerald-300'
+            }`}>
+              {(currentOrder.status || '').toLowerCase() === 'ready' ? 'READY AT COUNTER 1!' : currentOrder.status}
+            </div>
           </div>
+
+          <button
+            onClick={handleManualRefresh}
+            className="text-[11px] bg-white/10 hover:bg-white/20 text-white font-medium px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh Status
+          </button>
         </div>
       </div>
 
+      {/* Cancelled Banner */}
+      {(currentOrder.status || '').toLowerCase() === 'cancelled' && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-800 p-5 rounded-3xl shadow-xs flex items-center gap-3">
+          <AlertTriangle className="w-6 h-6 text-rose-600 flex-shrink-0" />
+          <div className="text-xs">
+            <div className="font-bold text-sm">Order Cancelled</div>
+            <p>This order has been cancelled and stock has been automatically restored to canteen inventory.</p>
+          </div>
+        </div>
+      )}
+
       {/* Real-time Ready Alert Banner */}
-      {currentOrder.status === 'Ready' && (
+      {(currentOrder.status || '').toLowerCase() === 'ready' && (
         <div className="bg-[#DCFCE7] border border-[#16A34A]/40 text-[#15803D] p-6 rounded-3xl shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-[#16A34A] flex items-center justify-center text-white flex-shrink-0">
@@ -101,13 +149,11 @@ export const OrderTracking = () => {
           5-Stage Kitchen Lifecycle Progress
         </h2>
 
-        {/* Stepper bar (Desktop: Horizontal / Mobile: Responsive) */}
+        {/* Stepper bar */}
         <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between max-w-2xl mx-auto py-2 gap-6 md:gap-0">
           
-          {/* Desktop Background Connecting Line */}
           <div className="hidden md:block absolute top-1/2 left-0 right-0 h-1 bg-slate-200 -translate-y-1/2 z-0"></div>
           
-          {/* Desktop Active Colored Line */}
           <div 
             className="hidden md:block absolute top-1/2 left-0 h-1 bg-[#16A34A] -translate-y-1/2 z-0 transition-all duration-500"
             style={{ width: `${(Math.max(0, currentIndex) / (steps.length - 1)) * 100}%` }}
@@ -143,23 +189,23 @@ export const OrderTracking = () => {
           <div className="bg-[#F8FAFC] p-4 rounded-2xl text-center border border-slate-200">
             <span className="text-[11px] text-[#64748B] font-semibold block uppercase">Queue Status</span>
             <span className="text-xl font-extrabold text-[#172018]">
-              {currentOrder.status === 'Ready' || currentOrder.status === 'Collected' ? 'At Counter' : `#${currentOrder.queuePosition} in queue`}
+              {(currentOrder.status || '').toLowerCase() === 'ready' || (currentOrder.status || '').toLowerCase() === 'collected' ? 'At Counter' : `#${currentOrder.queuePosition || 1} in queue`}
             </span>
           </div>
 
           <div className="bg-[#F8FAFC] p-4 rounded-2xl text-center border border-slate-200">
             <span className="text-[11px] text-[#64748B] font-semibold block uppercase">Estimated Prep</span>
-            <span className="text-xl font-extrabold text-[#16A34A]">{currentOrder.estimatedPrepTime}</span>
+            <span className="text-xl font-extrabold text-[#16A34A]">{currentOrder.estimatedPrepTime || '10-12 mins'}</span>
           </div>
 
           <div className="bg-[#F8FAFC] p-4 rounded-2xl text-center border border-slate-200">
             <span className="text-[11px] text-[#64748B] font-semibold block uppercase">Pickup Station</span>
-            <span className="text-xl font-extrabold text-[#172018]">{currentOrder.counterNumber}</span>
+            <span className="text-xl font-extrabold text-[#172018]">{currentOrder.counterNumber || 'Counter 1'}</span>
           </div>
         </div>
       </div>
 
-      {/* QR Pass & Items Summary */}
+      {/* QR Pass & Details Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* QR Code Pass */}
@@ -188,25 +234,44 @@ export const OrderTracking = () => {
           <span className="block text-xs font-mono text-emerald-400 font-bold">PASS: #{orderNumber}</span>
         </div>
 
-        {/* Order Items Breakdown */}
+        {/* Order Items & Cancellation */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
           <h3 className="text-sm font-bold text-[#172018] border-b border-slate-100 pb-2">
             Items in Order #{orderNumber}
           </h3>
 
           <div className="space-y-3">
-            {currentOrder.items.map((item, idx) => (
+            {currentOrder.items?.map((item, idx) => (
               <div key={idx} className="flex items-center justify-between text-xs text-[#172018]">
                 <span className="font-semibold">{item.name} <span className="text-[#64748B]">x{item.quantity}</span></span>
-                <span className="font-bold">₹{item.price * item.quantity}</span>
+                <span className="font-bold">₹{(item.price || 0) * (item.quantity || 1)}</span>
               </div>
             ))}
           </div>
+
+          {currentOrder.specialRequests && (
+            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs text-slate-600">
+              <span className="font-bold text-slate-800">Special Request:</span> {currentOrder.specialRequests}
+            </div>
+          )}
 
           <div className="border-t border-slate-100 pt-3 flex justify-between font-black text-sm text-[#172018]">
             <span>Total Paid</span>
             <span className="text-[#16A34A]">₹{currentOrder.totalAmount}</span>
           </div>
+
+          {/* Cancellation Control */}
+          {isCancelable && (
+            <div className="pt-2 border-t border-slate-100">
+              <button
+                onClick={handleCancel}
+                className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 border border-rose-200 transition"
+              >
+                <XCircle className="w-4 h-4 text-rose-600" />
+                Cancel Order & Restore Stock
+              </button>
+            </div>
+          )}
         </div>
 
       </div>
@@ -215,10 +280,10 @@ export const OrderTracking = () => {
       <div className="bg-[#FFEDD5] p-4 rounded-2xl border border-[#F97316]/30 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
         <div className="flex items-center gap-2 text-[#C2410C] font-semibold">
           <Sparkles className="w-4 h-4 text-[#F97316] flex-shrink-0" />
-          <span>Demo Controller: Advance this order state through kitchen queue</span>
+          <span>Demo Action: Advance this order state through kitchen queue</span>
         </div>
 
-        {currentOrder.status !== 'Collected' ? (
+        {(currentOrder.status || '').toLowerCase() !== 'collected' && (currentOrder.status || '').toLowerCase() !== 'cancelled' ? (
           <button 
             onClick={handleSimulateNextState}
             className="bg-[#F97316] hover:bg-[#C2410C] text-white font-semibold px-4 py-2 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap"
@@ -227,7 +292,7 @@ export const OrderTracking = () => {
           </button>
         ) : (
           <span className="text-[#15803D] font-bold bg-[#DCFCE7] px-3 py-1 rounded-lg border border-[#16A34A]/30">
-            Order Lifecycle Completed
+            Order State Terminal: {currentOrder.status}
           </span>
         )}
       </div>

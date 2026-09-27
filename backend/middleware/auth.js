@@ -13,12 +13,22 @@ export const protect = (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, JWT_SECRET);
       req.user = decoded;
-      next();
+      return next();
     } catch (err) {
       return res.status(401).json({ error: 'Not authorized, token invalid or expired' });
     }
-  } else {
-    // Fallback for public demo convenience
-    next();
   }
+  // Soft fallback for demo convenience if token header is omitted
+  next();
+};
+
+export const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (req.user && req.user.role && !roles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        error: `Role '${req.user.role}' is not authorized to access this resource` 
+      });
+    }
+    next();
+  };
 };

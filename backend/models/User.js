@@ -39,20 +39,26 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: '+91 98765 43210'
   },
+  phoneNumber: {
+    type: String,
+    default: '+91 98765 43210'
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
   balance: {
     type: Number,
     default: 1250
   }
 }, { timestamps: true });
 
-// Hash password before saving if modified (Mongoose 8 async pre-save pattern)
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Compare password method
 userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

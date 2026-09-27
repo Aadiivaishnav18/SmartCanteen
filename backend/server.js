@@ -7,8 +7,12 @@ import { User } from './models/User.js';
 
 import authRoutes from './routes/authRoutes.js';
 import foodRoutes from './routes/foodRoutes.js';
-import slotRoutes from './routes/slotRoutes.js';
+import cartRoutes from './routes/cartRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import slotRoutes from './routes/slotRoutes.js';
+import staffRoutes from './routes/staffRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 import seedRoutes from './routes/seedRoutes.js';
 
 dotenv.config();
@@ -16,9 +20,19 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ ADD: Request logging middleware
+// Request logging middleware
 app.use((req, res, next) => {
-  console.log(`📍 [${new Date().toISOString()}] ${req.method} ${req.path}`);
+  const url = req.originalUrl || req.url || req.path;
+  // Suppress repetitive polling GET routes from spamming terminal logs
+  if (req.method === 'GET' && (url === '/api/foods' || url === '/api/slots' || url === '/api/orders')) {
+    return next();
+  }
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const icon = res.statusCode < 400 ? '✅' : '❌';
+    console.log(`${icon} [${req.method}] ${url} - ${res.statusCode} (${duration}ms)`);
+  });
   next();
 });
 
@@ -29,9 +43,11 @@ const corsOptions = {
       process.env.FRONTEND_URL,
       'https://smart-canteen-nine-opal.vercel.app',
       'http://localhost:3000',
+      'http://localhost:1234',
       'http://localhost:5000',
       'http://localhost:5173',
       'http://127.0.0.1:3000',
+      'http://127.0.0.1:1234',
       'http://127.0.0.1:5000',
       'http://127.0.0.1:5173'
     ].filter(Boolean);
@@ -56,15 +72,33 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Mount Routes
+// Mount Routes with full /api and direct endpoint aliases
 app.use('/api/auth', authRoutes);
 app.use('/auth', authRoutes);
+
+app.use('/api/menu', foodRoutes);
 app.use('/api/foods', foodRoutes);
+app.use('/menu', foodRoutes);
 app.use('/foods', foodRoutes);
-app.use('/api/slots', slotRoutes);
-app.use('/slots', slotRoutes);
+
+app.use('/api/cart', cartRoutes);
+app.use('/cart', cartRoutes);
+
 app.use('/api/orders', orderRoutes);
 app.use('/orders', orderRoutes);
+
+app.use('/api/payment', paymentRoutes);
+app.use('/payment', paymentRoutes);
+
+app.use('/api/slots', slotRoutes);
+app.use('/slots', slotRoutes);
+
+app.use('/api/staff', staffRoutes);
+app.use('/staff', staffRoutes);
+
+app.use('/api/admin', adminRoutes);
+app.use('/admin', adminRoutes);
+
 app.use('/api/seed', seedRoutes);
 app.use('/seed', seedRoutes);
 
@@ -72,7 +106,7 @@ app.get(['/api/health', '/health', '/'], (req, res) => {
   res.json({ status: 'OK', message: 'SmartCanteen MERN Backend operational' });
 });
 
-// ✅ ADD: Error handling middleware (MUST be after all routes)
+// Centralized error handling middleware
 app.use((err, req, res, next) => {
   console.error('❌ ERROR:', err.message);
   console.error('Stack:', err.stack);
@@ -82,7 +116,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ✅ ADD: Catch undefined routes
+// Catch undefined routes
 app.use((req, res) => {
   console.warn(`⚠️ Route not found: ${req.method} ${req.path}`);
   res.status(404).json({ error: 'Route not found' });
@@ -105,7 +139,6 @@ connectDB()
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`Frontend URL: ${process.env.FRONTEND_URL}`);
     });
   })
   .catch(err => {

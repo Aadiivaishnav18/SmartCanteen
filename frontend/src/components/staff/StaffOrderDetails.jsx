@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Clock, User, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Clock, User, ArrowRight, Printer, MessageSquare, ShieldCheck } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const StaffOrderDetails = () => {
@@ -10,40 +10,56 @@ export const StaffOrderDetails = () => {
     setStaffTab 
   } = useApp();
 
-  const order = orders.find(o => (o.id === staffSelectedOrderId || o._id === staffSelectedOrderId || o.orderId === staffSelectedOrderId)) || orders[0];
+  const order = orders.find(o => (o.id === staffSelectedOrderId || o._id === staffSelectedOrderId || o.orderId === staffSelectedOrderId || o.orderNumber === staffSelectedOrderId)) || orders[0];
 
   if (!order) return null;
 
-  const orderIdStr = order.orderId || order.id || order._id;
+  const orderIdStr = order.orderNumber || order.orderId || order.id || order._id;
   const steps = ['Placed', 'Accepted', 'Preparing', 'Ready', 'Collected'];
-  const currentIndex = steps.indexOf(order.status);
+  const currentIndex = steps.map(s => s.toLowerCase()).indexOf((order.status || '').toLowerCase());
 
   const getNextAction = (status) => {
-    switch (status) {
-      case 'Placed': return { label: 'Accept Order', target: 'Accepted' };
-      case 'Accepted': return { label: 'Start Preparing', target: 'Preparing' };
-      case 'Preparing': return { label: 'Mark Ready for Pickup', target: 'Ready' };
-      case 'Ready': return { label: 'Mark Collected by Student', target: 'Collected' };
+    const norm = (status || '').toLowerCase();
+    switch (norm) {
+      case 'placed': return { label: 'Accept Order', target: 'Accepted' };
+      case 'accepted': return { label: 'Start Preparing', target: 'Preparing' };
+      case 'preparing': return { label: 'Mark Ready for Pickup', target: 'Ready' };
+      case 'ready': return { label: 'Mark Collected by Student', target: 'Collected' };
       default: return null;
     }
   };
 
   const action = getNextAction(order.status);
 
+  const handlePrintTicket = () => {
+    window.print();
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       
-      <div className="flex items-center gap-3">
-        <button 
-          onClick={() => setStaffTab('dashboard')}
-          className="bg-white p-2 rounded-xl border border-slate-200 text-[#172018] hover:bg-slate-50 transition"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-black text-[#172018]">Kitchen Order Checklist #{orderIdStr}</h1>
-          <p className="text-[#64748B] text-xs">Operational details & Preparation checklist</p>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setStaffTab('dashboard')}
+            className="bg-white p-2 rounded-xl border border-slate-200 text-[#172018] hover:bg-slate-50 transition"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-black text-[#172018]">Kitchen Order Checklist #{orderIdStr}</h1>
+            <p className="text-[#64748B] text-xs">Operational details & Preparation ticket</p>
+          </div>
         </div>
+
+        <button
+          onClick={handlePrintTicket}
+          className="bg-[#172018] hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-xs transition"
+        >
+          <Printer className="w-4 h-4 text-emerald-400" />
+          Print Kitchen Ticket
+        </button>
       </div>
 
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
@@ -59,16 +75,27 @@ export const StaffOrderDetails = () => {
           <div>
             <span className="text-xs text-[#64748B] font-semibold block">Pickup Time Slot</span>
             <strong className="text-sm font-bold text-[#16A34A] block">{order.pickupSlotTime}</strong>
-            <span className="text-xs text-[#64748B]">{order.counterNumber}</span>
+            <span className="text-xs text-[#64748B]">{order.counterNumber || 'Counter 1 (Express)'}</span>
           </div>
 
           <div>
             <span className="text-xs text-[#64748B] font-semibold block">Current Lifecycle State</span>
-            <span className="inline-block mt-1 px-3 py-1 bg-[#16A34A] text-white font-bold text-xs rounded-full">
+            <span className="inline-block mt-1 px-3 py-1 bg-[#16A34A] text-white font-bold text-xs rounded-full uppercase">
               {order.status}
             </span>
           </div>
         </div>
+
+        {/* Special Instructions */}
+        {order.specialRequests && (
+          <div className="bg-[#FFEDD5] border border-[#F97316]/30 p-4 rounded-2xl text-xs space-y-1">
+            <div className="font-bold text-[#C2410C] flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-[#F97316]" />
+              Special Instructions from Student
+            </div>
+            <p className="text-[#C2410C]/90 font-medium pl-6">{order.specialRequests}</p>
+          </div>
+        )}
 
         {/* Timeline Progress */}
         <div className="space-y-3">
@@ -94,10 +121,10 @@ export const StaffOrderDetails = () => {
         <div>
           <h3 className="text-xs uppercase font-bold text-[#94A3B8] tracking-wider mb-3">Preparation Checklist</h3>
           <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
-            {order.items.map((item, idx) => (
+            {order.items?.map((item, idx) => (
               <div key={idx} className="p-4 flex items-center justify-between bg-[#F8FAFC]">
                 <div className="flex items-center gap-3">
-                  <img src={item.image} alt={item.name} className="w-12 h-12 rounded-xl object-cover" />
+                  {item.image && <img src={item.image} alt={item.name} className="w-12 h-12 rounded-xl object-cover" />}
                   <div>
                     <span className="font-bold text-[#172018] text-sm block">{item.name}</span>
                     <span className="text-xs text-[#64748B]">₹{item.price} per unit</span>

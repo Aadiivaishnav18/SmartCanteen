@@ -8,9 +8,12 @@ import {
   Coins, 
   ArrowLeft, 
   ShieldCheck, 
-  Lock 
+  Lock,
+  MessageSquare,
+  QrCode
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { PaymentGateway } from '../Payment/PaymentGateway';
 
 export const StudentCheckout = () => {
   const { 
@@ -18,18 +21,23 @@ export const StudentCheckout = () => {
     getCartDetails, 
     placeOrder, 
     setStudentTab,
-    showToast
+    showToast,
+    specialRequests,
+    setSpecialRequests,
+    pendingPaymentOrder,
+    setPendingPaymentOrder
   } = useApp();
 
   const { items, subtotal, tax, total } = getCartDetails();
 
   // Find first available active slot
-  const defaultSlot = pickupSlots.find(s => s.active && s.bookedCount < s.capacity);
-  const [selectedSlotId, setSelectedSlotId] = useState(defaultSlot ? (defaultSlot.id || defaultSlot._id) : '');
+  const defaultSlot = pickupSlots.find(s => (s.active !== false && s.isActive !== false) && s.bookedCount < s.capacity);
+  const [selectedSlotId, setSelectedSlotId] = useState(defaultSlot ? (defaultSlot._id || defaultSlot.id) : '');
   const [paymentMethod, setPaymentMethod] = useState('Campus Wallet');
   const [errorState, setErrorState] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     setErrorState('');
 
     if (!selectedSlotId) {
@@ -37,15 +45,34 @@ export const StudentCheckout = () => {
       return;
     }
 
-    const res = placeOrder({ pickupSlotId: selectedSlotId, paymentMethod });
+    setIsSubmitting(true);
+    const res = await placeOrder({ 
+      pickupSlotId: selectedSlotId, 
+      paymentMethod,
+      requests: specialRequests
+    });
+    setIsSubmitting(false);
 
     if (!res.success) {
       setErrorState(res.error);
       showToast(res.error, 'error');
-    } else {
-      setStudentTab('order-confirmation');
     }
   };
+
+  if (pendingPaymentOrder) {
+    return (
+      <PaymentGateway
+        order={pendingPaymentOrder}
+        onPaymentSuccess={() => {
+          setPendingPaymentOrder(null);
+          setStudentTab('order-confirmation');
+        }}
+        onCancel={() => {
+          setPendingPaymentOrder(null);
+        }}
+      />
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -71,7 +98,7 @@ export const StudentCheckout = () => {
         </button>
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-[#172018]">Checkout</h1>
-          <p className="text-[#64748B] text-xs sm:text-sm">Select a pickup slot window and payment method</p>
+          <p className="text-[#64748B] text-xs sm:text-sm">Select a pickup slot window, payment method & instructions</p>
         </div>
       </div>
 
@@ -84,7 +111,7 @@ export const StudentCheckout = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         
-        {/* Main Content: Pickup Slot & Payment Selection */}
+        {/* Main Content: Pickup Slot, Special Requests & Payment Selection */}
         <div className="lg:col-span-2 space-y-6">
           
           {/* STEP 1: PICKUP SLOT SELECTION */}
@@ -94,33 +121,34 @@ export const StudentCheckout = () => {
                 <Clock className="w-5 h-5 text-[#16A34A]" />
                 1. Select Pickup Time Slot
               </h2>
-              <span className="text-xs text-[#64748B] font-medium">15-Min Windows</span>
+              <span className="text-xs text-[#64748B] font-medium">Capacity Controlled</span>
             </div>
 
             <p className="text-[#64748B] text-xs leading-relaxed">
-              Slots are capacity-controlled to ensure instant counter collection without lines.
+              Slots are capacity-controlled to ensure instant counter collection without waiting in lines.
             </p>
 
             {/* Slots Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {pickupSlots.map(slot => {
-                const slotKey = slot.id || slot._id;
+                const slotKey = slot._id || slot.id;
                 const isFull = slot.bookedCount >= slot.capacity;
                 const isSelected = selectedSlotId === slotKey;
                 const available = Math.max(0, slot.capacity - slot.bookedCount);
                 const isNearlyFull = available > 0 && available <= 3;
+                const isActive = slot.active !== false && slot.isActive !== false;
 
                 return (
                   <div
                     key={slotKey}
                     onClick={() => {
-                      if (!isFull && slot.active) {
+                      if (!isFull && isActive) {
                         setSelectedSlotId(slotKey);
                         setErrorState('');
                       }
                     }}
                     className={`p-4 rounded-2xl border transition-all flex items-center justify-between cursor-pointer ${
-                      isFull
+                      isFull || !isActive
                         ? 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
                         : isSelected
                         ? 'bg-[#F0FDF4] border-[#16A34A] shadow-xs ring-2 ring-emerald-500/20'
@@ -134,7 +162,11 @@ export const StudentCheckout = () => {
                       </div>
 
                       <div className="text-[11px] font-semibold">
-                        {isFull ? (
+                        {!isActive ? (
+                          <span className="text-slate-500 font-bold bg-slate-200 px-2 py-0.5 rounded-md">
+                            Inactive
+                          </span>
+                        ) : isFull ? (
                           <span className="text-[#B91C1C] font-bold bg-[#FEE2E2] px-2 py-0.5 rounded-md border border-[#EF4444]/20">
                             FULL ({slot.bookedCount}/{slot.capacity})
                           </span>
@@ -144,14 +176,14 @@ export const StudentCheckout = () => {
                           </span>
                         ) : (
                           <span className={`${isSelected ? 'text-[#15803D]' : 'text-[#64748B]'}`}>
-                            {available} left ({slot.bookedCount}/{slot.capacity} booked)
+                            {available} remaining ({slot.bookedCount}/{slot.capacity} booked)
                           </span>
                         )}
                       </div>
                     </div>
 
                     <div>
-                      {isFull ? (
+                      {isFull || !isActive ? (
                         <span className="text-[10px] uppercase font-bold text-rose-500 bg-rose-100 px-2 py-1 rounded-md">
                           Disabled
                         </span>
@@ -169,11 +201,26 @@ export const StudentCheckout = () => {
             </div>
           </div>
 
-          {/* STEP 2: PAYMENT METHOD */}
+          {/* STEP 2: SPECIAL INSTRUCTIONS */}
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-3">
+            <h2 className="text-lg font-bold text-[#172018] flex items-center gap-2 border-b border-slate-100 pb-3">
+              <MessageSquare className="w-5 h-5 text-[#16A34A]" />
+              2. Special Instructions for Staff (Optional)
+            </h2>
+            <textarea
+              rows={2}
+              value={specialRequests}
+              onChange={(e) => setSpecialRequests(e.target.value)}
+              placeholder="e.g. Extra spicy, no onions, pack sauce separately..."
+              className="w-full p-3.5 border border-slate-200 rounded-2xl text-xs focus:ring-2 focus:ring-[#16A34A] focus:border-transparent outline-none transition"
+            />
+          </div>
+
+          {/* STEP 3: PAYMENT METHOD */}
           <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
             <h2 className="text-lg font-bold text-[#172018] flex items-center gap-2 border-b border-slate-100 pb-3">
               <Wallet className="w-5 h-5 text-[#16A34A]" />
-              2. Select Payment Method
+              3. Select Payment Method
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -201,7 +248,7 @@ export const StudentCheckout = () => {
                     : 'bg-white border-slate-200 hover:border-slate-300'
                 }`}
               >
-                <CreditCard className={`w-6 h-6 mb-2 ${paymentMethod === 'UPI' ? 'text-[#16A34A]' : 'text-slate-400'}`} />
+                <QrCode className={`w-6 h-6 mb-2 ${paymentMethod === 'UPI' ? 'text-[#16A34A]' : 'text-slate-400'}`} />
                 <div>
                   <span className="font-bold text-xs text-[#172018] block">UPI / GPay / PhonePe</span>
                   <span className="text-[10px] text-[#64748B]">Instant QR scanner</span>
@@ -219,7 +266,7 @@ export const StudentCheckout = () => {
                 <Coins className={`w-6 h-6 mb-2 ${paymentMethod === 'Pay at Counter' ? 'text-[#16A34A]' : 'text-slate-400'}`} />
                 <div>
                   <span className="font-bold text-xs text-[#172018] block">Pay Cash at Counter</span>
-                  <span className="text-[10px] text-[#64748B]">Upon order collection</span>
+                  <span className="text-[10px] text-[#64748B]">Upon collection</span>
                 </div>
               </div>
 
@@ -228,14 +275,14 @@ export const StudentCheckout = () => {
 
         </div>
 
-        {/* Right Side: Order Summary & Place Order */}
+        {/* Right Side: Order Summary & Proceed to Payment */}
         <div className="bg-[#172018] text-white rounded-3xl p-6 border border-slate-800 shadow-xl space-y-6">
           <h2 className="text-lg font-bold border-b border-slate-800 pb-3 flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-[#16A34A]" />
-            Final Confirmation
+            Order Summary
           </h2>
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
             <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">Items Breakdown</div>
             {items.map(i => (
               <div key={i.id || i._id} className="flex justify-between text-xs text-slate-200">
@@ -269,11 +316,12 @@ export const StudentCheckout = () => {
           </div>
 
           <button 
+            disabled={isSubmitting}
             onClick={handlePlaceOrder}
-            className="w-full bg-[#16A34A] hover:bg-[#15803D] active:scale-95 text-white font-semibold py-4 rounded-xl text-sm flex items-center justify-center gap-2 shadow-md transition"
+            className="w-full bg-[#16A34A] hover:bg-[#15803D] active:scale-95 disabled:opacity-50 text-white font-semibold py-4 rounded-xl text-sm flex items-center justify-center gap-2 shadow-md transition"
           >
             <Lock className="w-4 h-4" />
-            Place Order
+            Proceed to Payment
           </button>
         </div>
 

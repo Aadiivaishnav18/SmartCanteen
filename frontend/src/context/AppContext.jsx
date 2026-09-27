@@ -22,6 +22,7 @@ export const AppProvider = ({ children }) => {
     status: 'All',
     startDate: '',
     endDate: '',
+    search: '',
     page: 1,
     limit: 10,
     sortBy: 'createdAt'
@@ -31,6 +32,8 @@ export const AppProvider = ({ children }) => {
     const saved = localStorage.getItem('smartcanteen_cart');
     return saved ? JSON.parse(saved) : [];
   });
+
+  const [specialRequests, setSpecialRequests] = useState('');
 
   // Navigation Tab State
   const [studentTab, setStudentTab] = useState('dashboard');
@@ -42,6 +45,8 @@ export const AppProvider = ({ children }) => {
   const [staffSelectedOrderId, setStaffSelectedOrderId] = useState(null);
   const [selectedFoodModal, setSelectedFoodModal] = useState(null);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [pendingPaymentOrder, setPendingPaymentOrder] = useState(null);
+  const [ticketToPrint, setTicketToPrint] = useState(null);
 
   // Notification Toast
   const [toast, setToast] = useState(null);
@@ -57,13 +62,14 @@ export const AppProvider = ({ children }) => {
   const refreshBackendData = useCallback(async () => {
     try {
       const [foodsData, slotsData, ordersRes] = await Promise.all([
-        api.getFoods(),
+        api.getFoods('All', '', 1, 100),
         api.getSlots(),
         api.getOrders({
           userId: currentUser?.role === 'student' ? (currentUser.id || currentUser._id) : '',
           status: orderFilters.status,
           startDate: orderFilters.startDate,
           endDate: orderFilters.endDate,
+          search: orderFilters.search,
           page: orderFilters.page,
           limit: orderFilters.limit,
           sortBy: orderFilters.sortBy
@@ -72,7 +78,10 @@ export const AppProvider = ({ children }) => {
 
       if (Array.isArray(foodsData)) {
         setFoodItems(foodsData);
+      } else if (foodsData && Array.isArray(foodsData.foods)) {
+        setFoodItems(foodsData.foods);
       }
+
       if (Array.isArray(slotsData)) {
         setPickupSlots(slotsData);
       }
@@ -89,10 +98,10 @@ export const AppProvider = ({ children }) => {
     }
   }, [currentUser, orderFilters, trackedOrderId]);
 
-  // Initial Sync & Real-Time Auto Refresh every 3 seconds
+  // Initial Sync & Real-Time Auto Refresh every 8 seconds
   useEffect(() => {
     refreshBackendData();
-    const interval = setInterval(refreshBackendData, 3000);
+    const interval = setInterval(refreshBackendData, 8000);
     return () => clearInterval(interval);
   }, [refreshBackendData]);
 
@@ -120,7 +129,7 @@ export const AppProvider = ({ children }) => {
   // Authentication Handlers
   const registerUser = async (userData) => {
     try {
-      const res = await api.register(userData);
+      const res = await api.signup(userData);
       if (res.success) {
         setToken(res.token);
         setCurrentUser(res.user);
@@ -255,6 +264,7 @@ export const AppProvider = ({ children }) => {
 
   const clearCart = () => {
     setCart([]);
+    setSpecialRequests('');
   };
 
   const getCartDetails = () => {
@@ -270,8 +280,8 @@ export const AppProvider = ({ children }) => {
     return { items, subtotal, tax, total };
   };
 
-  // Place Order API Call
-  const placeOrder = async ({ pickupSlotId, paymentMethod = 'Campus Wallet' }) => {
+  // Place Order (State: Placed, PaymentStatus: Pending) -> Opens Fake Payment Modal
+  const placeOrder = async ({ pickupSlotId, paymentMethod = 'fake-payment', requests = '' }) => {
     if (cart.length === 0) {
       return { success: false, error: 'Cart is empty.' };
     }
@@ -283,9 +293,10 @@ export const AppProvider = ({ children }) => {
         userId: currentUser ? (currentUser.id || currentUser._id) : 'usr-1',
         userName: currentUser ? currentUser.name : 'Aditya Sharma',
         userEmail: currentUser ? currentUser.email : 'student@college.edu',
-        items: items.map(i => ({ foodId: i._id || i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image })),
+        items: items.map(i => ({ foodId: i._id || i.id, menuItem: i._id || i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image })),
         pickupSlotId,
-        paymentMethod
+        paymentMethod,
+        specialRequests: requests || specialRequests
       });
 
       if (!res.success) {
@@ -294,11 +305,10 @@ export const AppProvider = ({ children }) => {
       }
 
       setCart([]);
-      setTrackedOrderId(res.order.orderId || res.order._id);
+      setSpecialRequests('');
+      setPendingPaymentOrder(res.order);
+      setTrackedOrderId(res.order.orderNumber || res.order.orderId || res.order._id);
       await refreshBackendData();
-
-      confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
-      showToast(`Order #${res.order.orderId || 'SC-9402'} confirmed! Stock updated in MongoDB.`, 'success');
 
       return { success: true, order: res.order };
     } catch (err) {
@@ -306,11 +316,34 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Process Fake Payment (90% success rate simulation)
+  const processPayment = async (orderId, paymentMethod) => {
+    try {
+      const res = await api.processFakePayment(orderId, paymentMethod);
+
+      if (res.isSuccessful && res.success) {
+        setPendingPaymentOrder(null);
+        await refreshBackendData();
+
+        confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+        showToast(`🎉 Payment Successful! Order #${res.order.orderNumber || orderId} confirmed.`, 'success');
+        setStudentTab('tracking');
+        return { success: true, order: res.order };
+      } else {
+        showToast(res.error || 'Payment failed. Please retry or choose another method.', 'error');
+        return { success: false, error: res.error || 'Payment transaction failed.' };
+      }
+    } catch (err) {
+      showToast('Payment processing error.', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
   // Order Lifecycle Status Update
   const updateOrderStatus = async (orderId, targetStatus) => {
     try {
       setOrders(prev => prev.map(o => {
-        if (o.id === orderId || o._id === orderId || o.orderId === orderId) {
+        if (o.id === orderId || o._id === orderId || o.orderId === orderId || o.orderNumber === orderId) {
           return { ...o, status: targetStatus };
         }
         return o;
@@ -320,10 +353,10 @@ export const AppProvider = ({ children }) => {
       if (res && res.error && !res.success) {
         showToast(res.error, 'error');
       } else {
-        if (targetStatus === 'Ready') {
+        if (targetStatus === 'Ready' || targetStatus === 'ready') {
           confetti({ particleCount: 70, spread: 60, origin: { y: 0.4 } });
           showToast(`🔔 ORDER READY: #${orderId} is ready at Counter 1!`, 'success');
-        } else if (targetStatus === 'Collected') {
+        } else if (targetStatus === 'Collected' || targetStatus === 'collected') {
           confetti({ particleCount: 60, spread: 60, origin: { y: 0.5 } });
           showToast(`🎉 ORDER COLLECTED: #${orderId} successfully picked up!`, 'success');
         } else {
@@ -336,20 +369,31 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Cancel Order & Restore Stock
-  const cancelOrder = async (orderId) => {
+  // Bulk Status Update for Staff
+  const bulkUpdateOrderStatus = async (orderIds, status) => {
     try {
-      setOrders(prev => prev.map(o => {
-        if (o.id === orderId || o._id === orderId || o.orderId === orderId) {
-          return { ...o, status: 'Cancelled' };
-        }
-        return o;
-      }));
+      const res = await api.bulkUpdateOrderStatus(orderIds, status);
+      if (res.success) {
+        showToast(`Updated ${res.modifiedCount || orderIds.length} orders to ${status}!`, 'success');
+        await refreshBackendData();
+      } else {
+        showToast(res.error, 'error');
+      }
+    } catch (err) {
+      showToast('Failed to bulk update orders', 'error');
+    }
+  };
 
-      const res = await api.cancelOrder(orderId);
+  // Cancel Order & Restore Stock
+  const cancelOrder = async (orderId, reason = '') => {
+    try {
+      const res = await api.cancelOrder(orderId, reason);
       if (res && res.error && !res.success) {
         showToast(res.error, 'error');
       } else {
+        if (pendingPaymentOrder && (pendingPaymentOrder._id === orderId || pendingPaymentOrder.orderNumber === orderId)) {
+          setPendingPaymentOrder(null);
+        }
         showToast(`Order #${orderId} cancelled & stock restored.`, 'info');
       }
       await refreshBackendData();
@@ -437,6 +481,20 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const bulkPriceUpdate = async (percentage, fixedAmount, category) => {
+    try {
+      const res = await api.bulkPriceUpdate(percentage, fixedAmount, category);
+      if (res.success) {
+        showToast(res.message || 'Bulk prices updated!', 'success');
+        await refreshBackendData();
+      } else {
+        showToast(res.error, 'error');
+      }
+    } catch (err) {
+      showToast('Bulk price update failed', 'error');
+    }
+  };
+
   const createPickupSlot = async (slotData) => {
     try {
       const res = await api.createSlot(slotData);
@@ -447,6 +505,20 @@ export const AppProvider = ({ children }) => {
       await refreshBackendData();
     } catch (err) {
       showToast('Error creating pickup slot.', 'error');
+    }
+  };
+
+  const createBulkSlots = async (slotsArray) => {
+    try {
+      const res = await api.createBulkSlots(slotsArray);
+      if (res.success) {
+        showToast(`Created ${res.count || slotsArray.length} pickup slots!`, 'success');
+        await refreshBackendData();
+      } else {
+        showToast(res.error, 'error');
+      }
+    } catch (err) {
+      showToast('Bulk slot creation failed', 'error');
     }
   };
 
@@ -520,22 +592,32 @@ export const AppProvider = ({ children }) => {
         orderFilters,
         setOrderFilters,
         cart,
+        specialRequests,
+        setSpecialRequests,
         addToCart,
         updateCartQuantity,
         removeFromCart,
         clearCart,
         getCartDetails,
         placeOrder,
+        pendingPaymentOrder,
+        setPendingPaymentOrder,
+        processPayment,
         updateOrderStatus,
+        bulkUpdateOrderStatus,
         cancelOrder,
         addFoodItem,
         editFoodItem,
         deleteFoodItem,
         updateStock,
         toggleFoodAvailability,
+        bulkPriceUpdate,
         createPickupSlot,
+        createBulkSlots,
         updateSlotCapacity,
         toggleSlotActive,
+        ticketToPrint,
+        setTicketToPrint,
         studentTab,
         setStudentTab,
         staffTab,
